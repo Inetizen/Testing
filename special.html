@@ -1,1 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Premium Exclusive Content</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; background: #000; font-family: 'Poppins', sans-serif; overflow: hidden; user-select: none; -webkit-user-select: none; }
+        
+        /* Blurred Background Image/Video */
+        .video-bg { width: 100%; height: 100%; object-fit: cover; filter: blur(15px); opacity: 0.4; position: absolute; z-index: 1; transition: filter 0.5s ease; pointer-events: none;}
+        
+        /* Strict Lock Modal */
+        .strict-lock { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); }
+        .modal { background: #121219; padding: 30px; border-radius: 15px; border: 1px solid #E63946; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 0 40px rgba(230,57,70,0.3); }
+        
+        .inp-pin { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.5); color: white; font-size: 1.2rem; text-align: center; font-weight: bold; font-family: 'Poppins', sans-serif; outline: none; transition: border 0.3s;}
+        .inp-pin:focus { border-color: #E63946; }
+        
+        .btn { padding: 14px; margin: 8px 0; width: 100%; border-radius: 8px; border: none; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.2s; font-family: 'Poppins', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn:hover { transform: scale(1.03); }
+        .btn-pin { background: #E63946; color: white; }
+        .btn-pay { background: #2DC653; color: white; }
+        .btn-back { background: rgba(255,255,255,0.1); color: white; margin-top: 15px; padding: 10px; font-size: 0.85rem;}
 
+        /* Anti-Recording Blackout Screen */
+        #securityBlackout { display: none; position: fixed; inset: 0; background: #000; z-index: 9999999; flex-direction: column; align-items: center; justify-content: center; color: #E63946; font-weight: bold; font-size: 1.2rem; }
+        
+        /* Unlocked Video Player */
+        #premiumPlayer { display: none; width: 100%; height: 100%; position: absolute; z-index: 50; background: #000; }
+    </style>
+</head>
+<body>
+
+    <!-- Security Blackout (Hidden by default) -->
+    <div id="securityBlackout">
+        <span>🚫 SCREEN CAPTURE BLOCKED</span>
+        <p style="color: #6E6E98; font-size: 0.8rem; margin-top: 10px;">Recording or taking screenshots is strictly prohibited.</p>
+    </div>
+
+    <!-- Background -->
+    <img src="https://via.placeholder.com/800x600/181828/E63946?text=Premium+Content" class="video-bg" id="bgMedia">
+
+    <!-- Strict Lock Screen -->
+    <div class="strict-lock" id="lockScreen">
+        <div class="modal">
+            <h2 style="color: #E63946; margin-top: 0; font-weight: 800;">🚫 PREMIUM LOCKED</h2>
+            <p style="color: #ccc; font-size: 0.85rem; margin-bottom: 20px;">This exclusive content requires a Special PIN to unlock.</p>
+            
+            <input type="password" id="userPinInput" class="inp-pin" placeholder="Enter 4-Digit PIN" maxlength="4" autocomplete="off">
+            
+            <button class="btn btn-pin" id="verifyBtn" onclick="verifyFirebasePin()">🔑 Unlock Video</button>
+            <button class="btn btn-pay" onclick="window.location.href='YOUR_PAYMENT_LINK_HERE'">💳 Pay to Get PIN</button>
+            <button class="btn btn-back" onclick="goBackToHome()">⬅ Return to Home</button>
+        </div>
+    </div>
+
+    <!-- Hidden Video Player -->
+    <video id="premiumPlayer" controls controlsList="nodownload"></video>
+
+    <!-- Firebase SDK Integration -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCTfvrtZuHXk3RW91Dcwpbghhq--D6X2s8",
+            authDomain: "inshelp-f2cba.firebaseapp.com",
+            databaseURL: "https://inshelp-f2cba-default-rtdb.firebaseio.com",
+            projectId: "inshelp-f2cba"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Generate Device ID (Same logic as index-4-1.html)
+        function getDeviceId() {
+            const ua = navigator.userAgent;
+            let os = "Unknown";
+            if (/Windows/i.test(ua)) os = "Windows"; else if (/Android/i.test(ua)) os = "Android"; else if (/iP(hone|od|ad)/i.test(ua)) os = "iOS";
+            const rawString = `${os}|${navigator.hardwareConcurrency || 'U'}|${navigator.deviceMemory || 'U'}|${window.screen.width}x${window.screen.height}`;
+            let hash = 0; for(let i=0; i<rawString.length; i++) hash = ((hash<<5)-hash)+rawString.charCodeAt(i);
+            return `${os.substring(0,4).toUpperCase()}-${Math.abs(hash).toString(36).toUpperCase()}`;
+        }
+        const currentDeviceId = getDeviceId();
+
+        // 1. Firebase PIN Verification Logic
+        window.verifyFirebasePin = async function() {
+            const pin = document.getElementById('userPinInput').value;
+            const btn = document.getElementById('verifyBtn');
+            
+            if(!pin || pin.length < 4) { alert("Please enter a valid 4-digit PIN."); return; }
+            
+            btn.innerText = "Checking...";
+            btn.style.opacity = "0.7";
+            
+            try {
+                // Firebase se PIN ki details fetch karo
+                const pinRef = ref(db, `premium_pins/${pin}`);
+                const snapshot = await get(pinRef);
+                
+                if (snapshot.exists()) {
+                    const pinData = snapshot.val();
+                    
+                    // Check Limit
+                    if (pinData.limit <= 0) {
+                        alert("❌ This PIN has expired or usage limit reached.");
+                        resetBtn(); return;
+                    }
+                    
+                    // Check Device ID (Agar PIN kisi specific device ke liye hai)
+                    if (pinData.deviceId !== "ALL" && pinData.deviceId !== currentDeviceId) {
+                        alert("❌ This PIN is not authorized for your device.");
+                        resetBtn(); return;
+                    }
+                    
+                    // Success! Unlock the video and deduct 1 limit
+                    await update(pinRef, { limit: pinData.limit - 1 });
+                    unlockVideo(pinData.videoUrl);
+                    
+                } else {
+                    alert("❌ Invalid PIN! Please check and try again.");
+                    resetBtn();
+                }
+            } catch (error) {
+                alert("Error connecting to server.");
+                resetBtn();
+            }
+        };
+
+        function resetBtn() {
+            const btn = document.getElementById('verifyBtn');
+            btn.innerText = "🔑 Unlock Video";
+            btn.style.opacity = "1";
+        }
+
+        // 2. Unlock & Play Video
+        function unlockVideo(videoUrl) {
+            document.getElementById('lockScreen').style.display = 'none';
+            document.getElementById('bgMedia').style.display = 'none';
+            
+            const player = document.getElementById('premiumPlayer');
+            player.style.display = 'block';
+            player.src = videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"; // Placeholder URL
+            player.play();
+        }
+
+        window.goBackToHome = function() {
+            window.location.href = 'index-4-1.html';
+        };
+
+        // 3. STRICT LOCK - Block Back Button
+        history.pushState(null, null, location.href);
+        window.onpopstate = function () { 
+            history.go(1); 
+        };
+
+        // 4. ANTI-SCREEN RECORD & SCREENSHOT TRICK
+        // Jab user browser se focus hatayega (Notification bar khichna, screen record on karna) -> Screen Black
+        document.addEventListener("visibilitychange", function() {
+            if (document.hidden) {
+                document.getElementById('securityBlackout').style.display = 'flex';
+                document.getElementById('premiumPlayer').pause(); // Video pause kar do
+            } else {
+                document.getElementById('securityBlackout').style.display = 'none';
+            }
+        });
+
+        window.addEventListener("blur", function() {
+            document.getElementById('securityBlackout').style.display = 'flex';
+        });
+
+        window.addEventListener("focus", function() {
+            document.getElementById('securityBlackout').style.display = 'none';
+        });
+
+        // Context Menu (Right Click) Block
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+    </script>
+</body>
+</html>
