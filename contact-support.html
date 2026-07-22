@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Support & Status - HotFake</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; padding: 0; background: #07070F; color: #F0F0FF; font-family: 'Poppins', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 20px; box-sizing: border-box; }
+        
+        .box { background: #181828; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 30px; width: 100%; max-width: 400px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
+        .box h2 { margin-top: 0; color: #E63946; font-size: 1.5rem; }
+        .box p { color: #a5a5b5; font-size: 0.9rem; margin-bottom: 20px; line-height: 1.5; }
+        
+        .inp { width: 100%; padding: 12px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-family: var(--font); margin-bottom: 15px; outline: none; box-sizing: border-box; }
+        .inp:focus { border-color: #E63946; }
+        textarea.inp { resize: vertical; min-height: 100px; }
+        
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; background: #E63946; color: white; transition: transform 0.2s; font-family: 'Poppins', sans-serif; }
+        .btn:hover { transform: scale(1.02); }
+        .btn:disabled { background: #6E6E98; cursor: not-allowed; transform: none; }
+        
+        /* Status Sections */
+        #formSection, #waitingSection, #replySection, #hackerSection { display: none; }
+        
+        .icon-large { font-size: 4rem; margin-bottom: 10px; display: block; }
+        .admin-msg-box { background: rgba(45, 198, 83, 0.1); border-left: 4px solid #2DC653; padding: 15px; text-align: left; border-radius: 0 8px 8px 0; margin-bottom: 20px; }
+        .admin-msg-box h4 { margin: 0 0 5px 0; color: #2DC653; font-size: 0.9rem; text-transform: uppercase; }
+        .admin-msg-box p { color: #fff; margin: 0; font-size: 0.95rem; }
+
+        .hacker-box { background: rgba(230, 57, 70, 0.1); border: 1px solid #E63946; padding: 20px; border-radius: 12px; }
+        .hacker-box h3 { color: #E63946; margin-top: 10px; font-weight: 800; letter-spacing: 1px; }
+
+        .back-link { display: inline-block; margin-top: 20px; color: #6E6E98; text-decoration: none; font-size: 0.85rem; }
+        .back-link:hover { color: #fff; }
+    </style>
+</head>
+<body>
+
+    <div class="box">
+        <!-- LOADER -->
+        <div id="loaderSection">
+            <span class="icon-large" style="animation: spin 2s infinite linear;">⚙️</span>
+            <h3>Checking Status...</h3>
+        </div>
+
+        <!-- 1. FORM SECTION -->
+        <div id="formSection">
+            <h2>Contact Support</h2>
+            <p>Describe your issue clearly. GPS location is required to verify device authenticity before submission.</p>
+            <input type="text" id="reqName" class="inp" placeholder="Your Name">
+            <input type="text" id="reqContact" class="inp" placeholder="Valid Email or 10-Digit Phone *">
+            <textarea id="reqMsg" class="inp" placeholder="Explain your problem here in detail... *"></textarea>
+            <button class="btn" id="submitBtn" onclick="submitRequest()">📍 Verify GPS & Submit</button>
+        </div>
+
+        <!-- 2. WAITING FOR ADMIN SECTION -->
+        <div id="waitingSection">
+            <span class="icon-large">🕒</span>
+            <h2 style="color: #F0F0FF;">Request Pending</h2>
+            <p>Your support ticket is in the queue. Please wait for an administrator to review and respond to your request.</p>
+            <p style="font-size: 0.75rem; color: #E63946; font-weight: 600;">DO NOT CLEAR APP DATA</p>
+        </div>
+
+        <!-- 3. ADMIN REPLIED SECTION -->
+        <div id="replySection">
+            <span class="icon-large">✅</span>
+            <h2 style="color: #2DC653;">Admin Responded</h2>
+            <div class="admin-msg-box">
+                <h4>Message from Support:</h4>
+                <p id="adminReplyText">Your issue has been resolved.</p>
+            </div>
+            <button class="btn" style="background: #2DC653;" onclick="acknowledgeReply()">Mark as Resolved & Continue</button>
+        </div>
+
+        <!-- 4. PERMANENT HACKER BAN SECTION -->
+        <div id="hackerSection">
+            <div class="hacker-box">
+                <span class="icon-large">☠️</span>
+                <h3>PERMANENTLY BANNED</h3>
+                <p style="color: #fff; font-weight: 500;">Your device has been flagged for illegal activities, hacking, or bypassing security protocols.</p>
+                <p style="font-size: 0.8rem; color: #ff8c94;">This device identifier is permanently blacklisted from our servers. No further appeals will be accepted.</p>
+            </div>
+        </div>
+    </div>
+
+    <a href="index.html" class="back-link">← Return to Home</a>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getDatabase, ref, get, set, remove, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCTfvrtZuHXk3RW91Dcwpbghhq--D6X2s8",
+            authDomain: "inshelp-f2cba.firebaseapp.com",
+            databaseURL: "https://inshelp-f2cba-default-rtdb.firebaseio.com",
+            projectId: "inshelp-f2cba"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let deviceId = null;
+
+        function getAdvancedDeviceInfo() {
+            const ua = navigator.userAgent; let os = "Unknown";
+            if (/Windows/i.test(ua)) os = "Windows"; else if (/Mac OS X/i.test(ua)) os = "MacOS"; else if (/Android/i.test(ua)) os = "Android"; else if (/Linux/i.test(ua)) os = "Linux"; else if (/iP(hone|od|ad)/i.test(ua)) os = "iOS";
+            return { os: os, cores: navigator.hardwareConcurrency || "U", ram: navigator.deviceMemory || "U", screen: `${window.screen.width}x${window.screen.height}` };
+        }
+
+        function generateDeviceFingerprint(info) {
+            const rawString = `${info.os}|${info.cores}|${info.ram}|${info.screen}`;
+            let hash = 0; for (let i = 0; i < rawString.length; i++) { hash = ((hash << 5) - hash) + rawString.charCodeAt(i); hash |= 0; }
+            return Math.abs(hash).toString(36).toUpperCase(); 
+        }
+
+        async function initPage() {
+            const advInfo = getAdvancedDeviceInfo();
+            const shortOs = advInfo.os.substring(0, 4).toUpperCase();
+            deviceId = `${shortOs}-${generateDeviceFingerprint(advInfo)}`;
+
+            // 1. Check if user is Hacker/Banned
+            const userSnap = await get(ref(db, `users/${deviceId}`));
+            if (userSnap.exists()) {
+                const userData = userSnap.val();
+                if (userData.banned && userData.banReason === 'hack') {
+                    showSection('hackerSection');
+                    return;
+                }
+            }
+
+            // 2. Check Support Request Status
+            onValue(ref(db, `support_requests/${deviceId}`), (snap) => {
+                if (!snap.exists()) {
+                    showSection('formSection');
+                } else {
+                    const reqData = snap.val();
+                    if (reqData.status === 'replied') {
+                        document.getElementById('adminReplyText').innerText = reqData.adminMessage || "Your issue is resolved.";
+                        showSection('replySection');
+                    } else if (reqData.status === 'hacker_ban') {
+                        showSection('hackerSection');
+                    } else {
+                        showSection('waitingSection');
+                    }
+                }
+            });
+        }
+
+        function showSection(id) {
+            document.getElementById('loaderSection').style.display = 'none';
+            document.getElementById('formSection').style.display = 'none';
+            document.getElementById('waitingSection').style.display = 'none';
+            document.getElementById('replySection').style.display = 'none';
+            document.getElementById('hackerSection').style.display = 'none';
+            document.getElementById(id).style.display = 'block';
+        }
+
+        window.submitRequest = function() {
+            const msg = document.getElementById('reqMsg').value.trim();
+            const name = document.getElementById('reqName').value.trim() || "User";
+            const contact = document.getElementById('reqContact').value.trim();
+            const btn = document.getElementById('submitBtn');
+
+            if (!msg) return alert("Please explain your problem.");
+            
+            const contactRegex = /^([a-zA-Z0-9_\.\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z]{2,}|[0-9]{10})$/;
+            if (!contact || !contactRegex.test(contact)) {
+                return alert("Please enter a valid Email address or 10-digit Phone Number.");
+            }
+
+            btn.innerText = "📍 Fetching GPS...";
+            btn.disabled = true;
+
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    const dataToSave = { 
+                        message: msg, name: name, contactInfo: contact, 
+                        regId: deviceId, os: navigator.platform, 
+                        lat: pos.coords.latitude, lon: pos.coords.longitude, 
+                        time: new Date().toISOString(),
+                        status: 'pending' // Default status
+                    };
+                    
+                    set(ref(db, `support_requests/${deviceId}`), dataToSave).then(() => { 
+                        btn.innerText = "📍 Verify GPS & Submit";
+                        btn.disabled = false;
+                        // onValue will auto-switch to 'waitingSection'
+                    });
+                }, (error) => {
+                    alert("GPS MUST BE ON and Allowed to submit a report.");
+                    btn.innerText = "📍 Verify GPS & Submit";
+                    btn.disabled = false;
+                }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+            } else {
+                alert("GPS Not Supported");
+                btn.disabled = false;
+            }
+        };
+
+        window.acknowledgeReply = function() {
+            // Delete the request so the user can use the app again
+            remove(ref(db, `support_requests/${deviceId}`)).then(() => {
+                window.location.href = 'index.html';
+            });
+        };
+
+        initPage();
+    </script>
+</body>
+</html>
