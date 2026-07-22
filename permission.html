@@ -35,10 +35,7 @@
         <p class="sub-text">To continue using the platform, the following access is required by the admin.</p>
         
         <div class="perm-list">
-            <div class="perm-item" id="req-storage">
-                <div class="perm-icon">💾</div>
-                <div class="perm-details"><h4>Storage Access</h4><p>Required to save offline content.</p></div>
-            </div>
+            <!-- Storage block removed from here as requested. Will be handled during download -->
             <div class="perm-item" id="req-location">
                 <div class="perm-icon">📍</div>
                 <div class="perm-details"><h4>GPS Location</h4><p>Required for localized security.</p></div>
@@ -67,10 +64,10 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        let requiredByAdmin = { location: true, camera: false, storage: true }; // Default rules
+        let requiredByAdmin = { location: true, camera: false }; // Storage removed from default rules
         let deviceId = null;
 
-        // Device ID Generation (Same as index-4-1.html)
+        // Device ID Generation 
         function getDeviceId() {
             const ua = navigator.userAgent;
             let os = "Unknown";
@@ -94,21 +91,21 @@
             let needsUI = false;
 
             if (requiredByAdmin.location) {
-                const locStatus = await navigator.permissions.query({ name: 'geolocation' });
-                if (locStatus.state !== 'granted') { needsUI = true; document.getElementById('req-location').style.display = 'flex'; }
+                try {
+                    const locStatus = await navigator.permissions.query({ name: 'geolocation' });
+                    if (locStatus.state !== 'granted') { needsUI = true; document.getElementById('req-location').style.display = 'flex'; }
+                } catch(e) {} // Fallback for browsers not supporting permissions API properly
             }
             if (requiredByAdmin.camera) {
-                const camStatus = await navigator.permissions.query({ name: 'camera' });
-                if (camStatus.state !== 'granted') { needsUI = true; document.getElementById('req-camera').style.display = 'flex'; }
-            }
-            // Storage usually doesn't need a browser prompt in the same way, but we track it locally
-            if (requiredByAdmin.storage && !localStorage.getItem('storageGranted')) {
-                needsUI = true; document.getElementById('req-storage').style.display = 'flex';
+                try {
+                    const camStatus = await navigator.permissions.query({ name: 'camera' });
+                    if (camStatus.state !== 'granted') { needsUI = true; document.getElementById('req-camera').style.display = 'flex'; }
+                } catch(e) {}
             }
 
-            // Step 3: Agar sab mil chuka hai, toh bina disturb kiye direct index pe bhej do
+            // Step 3: Agar sab mil chuka hai, toh bina disturb kiye direct index.html pe bhej do
             if (!needsUI) {
-                window.location.href = 'index-4-1.html';
+                window.location.href = 'index.html'; // Updated file name
             } else {
                 // Agar permission chahiye, toh UI show karo
                 document.getElementById('loadingState').style.display = 'none';
@@ -119,13 +116,9 @@
         window.requestNeededPermissions = async function() {
             const btn = document.getElementById('allowBtn');
             btn.innerText = "Processing..."; btn.style.opacity = "0.7";
+            document.getElementById('errorMsg').style.display = 'none'; // reset error msg
 
             try {
-                if(document.getElementById('req-storage').style.display === 'flex') {
-                    if (navigator.storage && navigator.storage.persist) await navigator.storage.persist();
-                    localStorage.setItem('storageGranted', 'true');
-                }
-                
                 if(document.getElementById('req-camera').style.display === 'flex') {
                     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                     stream.getTracks().forEach(track => track.stop());
@@ -133,7 +126,15 @@
 
                 if(document.getElementById('req-location').style.display === 'flex') {
                     await new Promise((resolve, reject) => {
-                        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true });
+                        navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                                // Save to local storage explicitly to keep it synced with your index logic
+                                localStorage.setItem('gpsVerified', 'true');
+                                resolve(position);
+                            }, 
+                            reject, 
+                            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+                        );
                     });
                 }
 
@@ -141,7 +142,7 @@
                 set(ref(db, `users/${deviceId}/perms_status`), "Granted");
 
                 btn.style.background = "#2DC653"; btn.innerText = "Success! Redirecting...";
-                setTimeout(() => window.location.href = 'index-4-1.html', 800);
+                setTimeout(() => window.location.href = 'index.html', 800); // Updated file name
             } catch (e) {
                 btn.innerText = "Allow & Continue"; btn.style.opacity = "1";
                 document.getElementById('errorMsg').style.display = 'block';
