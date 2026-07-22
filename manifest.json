@@ -4,9 +4,9 @@
   "display": "fullscreen",
   "name": "HOTFAKES",
   "orientation": "any",
-  "scope": "/freemovie/",
+  "scope": "/Testing/",
   "short_name": "HTF",
-  "start_url": "/freemovie/index.html",
+  "start_url": "/Testing/index.html",
   "theme_color": "#000000",
   "id": "hotfakes",
   "description": "Welcome to HOTFAKES - Watch free content",
@@ -23,4 +23,3 @@
     }
   ]
 }
-
