@@ -48,12 +48,12 @@
         
         <!-- STEP 1: Real-Time Plan Selector -->
         <div id="step1_plans">
-            <p style="color: #a5a5b5; font-size: 0.85rem; margin-bottom: 20px; text-align: center;">Select a subscription tier or unlock this specific video instantly.</p>
+            <p style="color: #a5a5b5; font-size: 0.85rem; margin-bottom: 20px; text-align: center;">Select a subscription tier or unlock this specific content instantly.</p>
             
             <div class="plan-card selected" onclick="selectPlan('single', this)">
                 <div class="plan-info">
-                    <h4>🎬 Single Video Pass</h4>
-                    <p>Unlock this specific video only</p>
+                    <h4 id="singlePlanTitle">🎬 Single Pass</h4>
+                    <p id="singlePlanDesc">Unlock this specific content</p>
                 </div>
                 <div class="plan-price" id="priceSingleDisplay">₹--</div>
             </div>
@@ -100,7 +100,7 @@
             <h3>Access Granted!</h3>
             <p style="color: #a5a5b5; font-size: 0.9rem;">Your secure Master/S-Key has been generated.</p>
             <div class="pin-display" id="finalPinDisplay">----</div>
-            <button class="btn-red" onclick="copyPinAndGo()">📋 Copy PIN & Play Video</button>
+            <button class="btn-red" onclick="copyPinAndGo()">📋 Copy PIN & Unlock Content</button>
         </div>
 
     </div>
@@ -121,22 +121,36 @@
         const urlParams = new URLSearchParams(window.location.search);
         const targetVid = urlParams.get('vid');
         const targetDev = urlParams.get('dev');
+        const contentType = urlParams.get('type') || 'video'; // Image ya Video fetch karega
 
         if(!targetVid || !targetDev) {
             alert("Security Error: Invalid Session.");
-            window.location.href = 'index.html';
+            window.location.replace('index.html');
         }
 
         let currentPrices = { single: 29, daily: 49, weekly: 199, monthly: 499 };
         let selectedPlanType = 'single';
         let selectedAmount = 29;
 
+        // 🔥 Dynamic UI Change based on content type
+        if (contentType === 'image') {
+            document.getElementById('singlePlanTitle').innerText = "🖼️ Single Image Pass";
+            document.getElementById('singlePlanDesc').innerText = "Unlock this specific image gallery";
+        } else {
+            document.getElementById('singlePlanTitle').innerText = "🎬 Single Video Pass";
+            document.getElementById('singlePlanDesc').innerText = "Unlock this specific video only";
+        }
+
         // Fetch Real-Time Pricing from Firebase
         onValue(ref(db, 'settings/pricing'), snap => {
             if(snap.exists()) {
                 const p = snap.val();
+                
+                // 🔥 Dynamic Price Selection logic
+                const dynamicSinglePrice = (contentType === 'image') ? (p.singleImg || 19) : (p.singleVid || 29);
+
                 currentPrices = {
-                    single: p.single || 29,
+                    single: dynamicSinglePrice,
                     daily: p.daily || 49,
                     weekly: p.weekly || 199,
                     monthly: p.monthly || 499
@@ -218,7 +232,7 @@
             const pin = document.getElementById('finalPinDisplay').innerText;
             navigator.clipboard.writeText(pin).then(() => {
                 alert("Key Copied! Pasting on unlock screen.");
-                window.location.href = `special.html?id=${targetVid}`;
+                window.location.replace(`special.html?id=${targetVid}`);
             });
         };
     </script>
