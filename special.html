@@ -8,7 +8,7 @@
     <style>
         body, html { margin: 0; padding: 0; height: 100%; background: #000; font-family: 'Poppins', sans-serif; overflow: hidden; user-select: none; -webkit-user-select: none; }
         
-        /* Blurred Background Image/Video */
+        /* Blurred Background Image */
         .video-bg { width: 100%; height: 100%; object-fit: cover; filter: blur(15px); opacity: 0.4; position: absolute; z-index: 1; transition: filter 0.5s ease; pointer-events: none;}
         
         /* Strict Lock Modal */
@@ -25,39 +25,45 @@
         .btn-back { background: rgba(255,255,255,0.1); color: white; margin-top: 15px; padding: 10px; font-size: 0.85rem;}
 
         /* Anti-Recording Blackout Screen */
-        #securityBlackout { display: none; position: fixed; inset: 0; background: #000; z-index: 9999999; flex-direction: column; align-items: center; justify-content: center; color: #E63946; font-weight: bold; font-size: 1.2rem; }
+        #securityBlackout { display: none; position: fixed; inset: 0; background: #000; z-index: 9999999; flex-direction: column; align-items: center; justify-content: center; color: #E63946; font-weight: bold; font-size: 1.2rem; text-align: center; padding: 20px;}
         
         /* Unlocked Video Player */
         #premiumPlayer { display: none; width: 100%; height: 100%; position: absolute; z-index: 50; background: #000; }
+        
+        /* Loading Text */
+        #loadingTxt { color: #E63946; font-size: 1.2rem; font-weight: bold; position: absolute; z-index: 10000; display: none;}
     </style>
 </head>
 <body>
 
     <!-- Security Blackout (Hidden by default) -->
     <div id="securityBlackout">
-        <span>🚫 SCREEN CAPTURE BLOCKED</span>
-        <p style="color: #6E6E98; font-size: 0.8rem; margin-top: 10px;">Recording or taking screenshots is strictly prohibited.</p>
+        <span style="font-size: 3rem;">🚫</span><br>
+        <span>SCREEN CAPTURE BLOCKED</span>
+        <p style="color: #6E6E98; font-size: 0.85rem; margin-top: 10px;">Recording or taking screenshots of premium content is strictly prohibited.</p>
     </div>
 
-    <!-- Background -->
-    <img src="https://via.placeholder.com/800x600/181828/E63946?text=Premium+Content" class="video-bg" id="bgMedia">
+    <div id="loadingTxt">Loading Secure Environment...</div>
+
+    <!-- Dynamic Background Image -->
+    <img src="" class="video-bg" id="bgMedia">
 
     <!-- Strict Lock Screen -->
-    <div class="strict-lock" id="lockScreen">
+    <div class="strict-lock" id="lockScreen" style="display:none;">
         <div class="modal">
             <h2 style="color: #E63946; margin-top: 0; font-weight: 800;">🚫 PREMIUM LOCKED</h2>
-            <p style="color: #ccc; font-size: 0.85rem; margin-bottom: 20px;">This exclusive content requires a Special PIN to unlock.</p>
+            <p style="color: #ccc; font-size: 0.85rem; margin-bottom: 20px;">This exclusive video requires a Special PIN to unlock.</p>
             
-            <input type="password" id="userPinInput" class="inp-pin" placeholder="Enter 4-Digit PIN" maxlength="4" autocomplete="off">
+            <input type="text" id="userPinInput" class="inp-pin" placeholder="Enter PIN" autocomplete="off" style="text-transform: uppercase;">
             
             <button class="btn btn-pin" id="verifyBtn" onclick="verifyFirebasePin()">🔑 Unlock Video</button>
-            <button class="btn btn-pay" onclick="window.location.href='YOUR_PAYMENT_LINK_HERE'">💳 Pay to Get PIN</button>
-            <button class="btn btn-back" onclick="goBackToHome()">⬅ Return to Home</button>
+            <button class="btn btn-pay" onclick="goToPayment()">💳 Pay to Get Auto-PIN</button>
+            <button class="btn btn-back" onclick="window.location.href='index.html'">⬅ Return to Home</button>
         </div>
     </div>
 
-    <!-- Hidden Video Player -->
-    <video id="premiumPlayer" controls controlsList="nodownload"></video>
+    <!-- Hidden Video Player (Using Iframe for Cloudflare Worker links) -->
+    <iframe id="premiumPlayer" allowfullscreen allow="autoplay; fullscreen" style="border: none;"></iframe>
 
     <!-- Firebase SDK Integration -->
     <script type="module">
@@ -73,7 +79,34 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Generate Device ID (Same logic as index-4-1.html)
+        const WORKER_URL = "https://shy-heart-bf9d.ekgf2003.workers.dev/?url=";
+
+        // 1. Get Target Video ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetVideoId = urlParams.get('id');
+        let actualVideoUrl = "";
+
+        if (!targetVideoId) {
+            window.location.href = 'index.html'; // Redirect if no ID
+        }
+
+        // 2. Fetch Video Details & Set Background
+        document.getElementById('loadingTxt').style.display = 'block';
+        get(ref(db, `videos/${targetVideoId}`)).then(snap => {
+            document.getElementById('loadingTxt').style.display = 'none';
+            if(snap.exists()) {
+                const v = snap.val();
+                document.getElementById('bgMedia').src = v.imageUrl || 'https://via.placeholder.com/800x600/181828/E63946?text=Premium';
+                actualVideoUrl = v.videoUrl;
+                document.getElementById('lockScreen').style.display = 'flex';
+            } else {
+                alert("Video not found!");
+                window.location.href = 'index.html';
+            }
+        }).catch(()=> { window.location.href = 'index.html'; });
+
+
+        // Generate Device ID for verification
         function getDeviceId() {
             const ua = navigator.userAgent;
             let os = "Unknown";
@@ -83,47 +116,63 @@
             return `${os.substring(0,4).toUpperCase()}-${Math.abs(hash).toString(36).toUpperCase()}`;
         }
         const currentDeviceId = getDeviceId();
+        const isPC = !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
 
-        // 1. Firebase PIN Verification Logic
+        // 3. Firebase PIN Verification Logic
         window.verifyFirebasePin = async function() {
-            const pin = document.getElementById('userPinInput').value;
+            const pin = document.getElementById('userPinInput').value.trim().toUpperCase();
             const btn = document.getElementById('verifyBtn');
             
-            if(!pin || pin.length < 4) { alert("Please enter a valid 4-digit PIN."); return; }
+            if(!pin) { alert("Please enter a PIN."); return; }
             
-            btn.innerText = "Checking...";
+            btn.innerText = "Checking Security...";
             btn.style.opacity = "0.7";
+            btn.disabled = true;
             
             try {
-                // Firebase se PIN ki details fetch karo
                 const pinRef = ref(db, `premium_pins/${pin}`);
                 const snapshot = await get(pinRef);
                 
                 if (snapshot.exists()) {
                     const pinData = snapshot.val();
                     
-                    // Check Limit
+                    // A. Check Limit
                     if (pinData.limit <= 0) {
                         alert("❌ This PIN has expired or usage limit reached.");
                         resetBtn(); return;
                     }
                     
-                    // Check Device ID (Agar PIN kisi specific device ke liye hai)
+                    // B. Check Device Restrictions
                     if (pinData.deviceId !== "ALL" && pinData.deviceId !== currentDeviceId) {
-                        alert("❌ This PIN is not authorized for your device.");
+                        alert("❌ This PIN is restricted to another device.");
+                        resetBtn(); return;
+                    }
+
+                    // C. Check PC Block
+                    if (pinData.blockPC && isPC) {
+                        alert("❌ This PIN can only be used on Mobile Devices.");
+                        resetBtn(); return;
+                    }
+
+                    // D. Check Video S-Key Restrictions
+                    if (pinData.type === 'specific' && pinData.targetVideo !== "ALL" && pinData.targetVideo !== targetVideoId) {
+                        alert("❌ This PIN is not valid for this specific video.");
                         resetBtn(); return;
                     }
                     
-                    // Success! Unlock the video and deduct 1 limit
+                    // SUCCESS!
                     await update(pinRef, { limit: pinData.limit - 1 });
-                    unlockVideo(pinData.videoUrl);
+                    
+                    // Admin ne agar alag URL di hai toh wo play hogi, warna video ki default URL
+                    const finalPlayUrl = pinData.videoUrl || actualVideoUrl;
+                    unlockAndPlayVideo(finalPlayUrl);
                     
                 } else {
                     alert("❌ Invalid PIN! Please check and try again.");
                     resetBtn();
                 }
             } catch (error) {
-                alert("Error connecting to server.");
+                alert("Network Error connecting to server.");
                 resetBtn();
             }
         };
@@ -132,49 +181,65 @@
             const btn = document.getElementById('verifyBtn');
             btn.innerText = "🔑 Unlock Video";
             btn.style.opacity = "1";
+            btn.disabled = false;
         }
 
-        // 2. Unlock & Play Video
-        function unlockVideo(videoUrl) {
+        // 4. Unlock & Play Video via Proxy
+        async function unlockAndPlayVideo(videoUrl) {
             document.getElementById('lockScreen').style.display = 'none';
             document.getElementById('bgMedia').style.display = 'none';
             
             const player = document.getElementById('premiumPlayer');
             player.style.display = 'block';
-            player.src = videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"; // Placeholder URL
-            player.play();
+
+            // Agar direct MP4 nahi hai toh Cloudflare Worker se pass karo
+            if (!videoUrl.match(/\.(mp4|m3u8)$/i) && !videoUrl.includes('hdhub4u')) {
+                try {
+                    const res = await fetch(WORKER_URL + encodeURIComponent(videoUrl));
+                    const data = await res.json();
+                    if(data.success && data.direct_url) videoUrl = data.direct_url;
+                } catch(e){}
+            }
+
+            if (videoUrl.includes('hdhub4u')) { videoUrl = videoUrl + '&no-ads=true&hide-controls=true'; }
+            
+            player.src = videoUrl;
         }
 
-        window.goBackToHome = function() {
-            window.location.href = 'index-4-1.html';
+        // 5. Setup Payment Redirect
+        window.goToPayment = function() {
+            // Hum videoId bhej rahe hain taaki payment page ko pata rahe ki payment kis video ke liye ho rahi hai
+            window.location.href = `payment.html?vid=${targetVideoId}&dev=${currentDeviceId}`;
         };
 
-        // 3. STRICT LOCK - Block Back Button
+        // 6. STRICT LOCK - Block Back Button smoothly
         history.pushState(null, null, location.href);
         window.onpopstate = function () { 
             history.go(1); 
         };
 
-        // 4. ANTI-SCREEN RECORD & SCREENSHOT TRICK
-        // Jab user browser se focus hatayega (Notification bar khichna, screen record on karna) -> Screen Black
+        // 7. ANTI-SCREEN RECORD & SCREENSHOT TRICK
         document.addEventListener("visibilitychange", function() {
             if (document.hidden) {
                 document.getElementById('securityBlackout').style.display = 'flex';
-                document.getElementById('premiumPlayer').pause(); // Video pause kar do
+                // Iframe pause nahi ho sakta easily cross-origin ki wajah se, isliye usko hide kar denge
+                document.getElementById('premiumPlayer').style.opacity = '0'; 
             } else {
                 document.getElementById('securityBlackout').style.display = 'none';
+                document.getElementById('premiumPlayer').style.opacity = '1';
             }
         });
 
         window.addEventListener("blur", function() {
             document.getElementById('securityBlackout').style.display = 'flex';
+            document.getElementById('premiumPlayer').style.opacity = '0';
         });
 
         window.addEventListener("focus", function() {
             document.getElementById('securityBlackout').style.display = 'none';
+            document.getElementById('premiumPlayer').style.opacity = '1';
         });
 
-        // Context Menu (Right Click) Block
         document.addEventListener('contextmenu', event => event.preventDefault());
 
     </script>
