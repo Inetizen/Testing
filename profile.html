@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Space - Downloads & History</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Premium Dark Theme UI */
+        body { background: #07070F; color: #F0F0FF; font-family: 'Poppins', sans-serif; margin: 0; padding: 20px; padding-bottom: 90px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.07); padding-bottom: 15px; }
+        .header h2 { margin: 0; font-size: 1.5rem; font-weight: 700; }
+        
+        /* Tabs UI */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 10px; background: #181828; border: 1px solid rgba(255,255,255,0.1); color: #a5a5b5; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: inherit; transition: all 0.3s;}
+        .tab-btn.active { background: #E63946; color: white; border-color: #E63946; }
+
+        /* Downloading Card UI (Progress bar) */
+        .downloading-card { background: rgba(230, 57, 70, 0.1); border: 1px solid rgba(230, 57, 70, 0.3); border-radius: 12px; padding: 15px; margin-bottom: 25px; }
+        .dl-info { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .dl-info h3 { margin: 0; font-size: 1rem; color: #fff; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid #E63946; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        .progress-bar { width: 100%; height: 6px; background: rgba(0,0,0,0.5); border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
+        .progress-fill { height: 100%; width: 0%; background: #E63946; border-radius: 10px; transition: width 0.3s ease; }
+        .status-text { margin: 0; font-size: 0.8rem; color: rgba(255,255,255,0.6); display: flex; justify-content: space-between; }
+
+        /* Grid UI */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
+        .card { background: #181828; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.07); }
+        .card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+        .card-body { padding: 10px; }
+        .card-body h3 { font-size: 0.85rem; margin: 0 0 10px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+        .btn-group { display: flex; gap: 5px; }
+        .btn { flex: 1; padding: 6px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.75rem; font-family: inherit;}
+        .btn-play { background: #E63946; color: white; }
+        .btn-del { background: rgba(255,255,255,0.1); color: white; }
+        .empty-msg { text-align: center; color: rgba(255,255,255,0.5); margin-top: 50px; font-size: 0.9rem; grid-column: 1 / -1; }
+
+        /* Netflix Style Bottom Nav */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(15,15,28,0.95); backdrop-filter: blur(15px); border-top: 1px solid rgba(255,255,255,0.07); display: flex; justify-content: space-around; padding: 10px 0; z-index: 1000; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #6E6E98; text-decoration: none; font-size: 0.7rem; font-weight: 500; gap: 4px; transition: color 0.2s;}
+        .nav-item.active { color: #fff; }
+        .nav-item svg { stroke: currentColor; transition: stroke 0.2s;}
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>My Space</h2>
+    </div>
+
+    <!-- Tabs for History and Downloads -->
+    <div class="tabs">
+        <button class="tab-btn" id="tabHistory" onclick="switchTab('history')">🕒 History</button>
+        <button class="tab-btn active" id="tabDownloads" onclick="switchTab('downloads')">⬇️ Downloads</button>
+    </div>
+
+    <!-- Active Download Progress Bar (From your code, perfectly intact) -->
+    <div id="activeDownloadSection" class="downloading-card" style="display:none;">
+        <div class="dl-info">
+            <span class="spinner"></span>
+            <h3 id="dlTitle">Preparing...</h3>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="dlProgress"></div>
+        </div>
+        <p class="status-text"><span id="dlStatusText">Connecting to server...</span> <span id="dlPercent">0%</span></p>
+    </div>
+
+    <!-- Grid for Videos -->
+    <div id="contentGrid" class="grid"></div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <a href="index-4-1.html" class="nav-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            Home
+        </a>
+        <a href="special.html" class="nav-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            Premium
+        </a>
+        <a href="index-4-1.html" class="nav-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            Search
+        </a>
+        <a href="profile.html" class="nav-item active">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            My Space
+        </a>
+    </div>
+
+    <script>
+        const WORKER_URL = "https://shy-heart-bf9d.ekgf2003.workers.dev/?url=";
+        let currentMode = 'downloads'; 
+
+        // 1. Tab Switch Logic
+        function switchTab(mode) {
+            document.getElementById('tabHistory').classList.remove('active');
+            document.getElementById('tabDownloads').classList.remove('active');
+            
+            if(mode === 'history') {
+                document.getElementById('tabHistory').classList.add('active');
+                document.getElementById('activeDownloadSection').style.display = 'none'; // History me progress bar hide
+            } else {
+                document.getElementById('tabDownloads').classList.add('active');
+                // Download tab me aate hi check karega agar koi download pending hai
+                if(localStorage.getItem('pending_download')) {
+                    document.getElementById('activeDownloadSection').style.display = 'block';
+                }
+            }
+            
+            currentMode = mode;
+            loadData();
+        }
+
+        // 2. Grid Load Logic (Dono History aur Downloads ke liye)
+        function loadData() {
+            const contentGrid = document.getElementById('contentGrid');
+            let dataList = [];
+            
+            if (currentMode === 'history') {
+                dataList = JSON.parse(localStorage.getItem('my_history') || '[]');
+            } else {
+                dataList = JSON.parse(localStorage.getItem('my_downloads') || '[]');
+            }
+
+            if (dataList.length === 0) {
+                contentGrid.innerHTML = `<div class='empty-msg'>No ${currentMode} found.</div>`;
+                return;
+            }
+            contentGrid.innerHTML = '';
+            
+            dataList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <img src="${item.thumb || 'https://via.placeholder.com/300x169/181828/6E6E98?text=Saved'}" alt="Thumb"> 
+                    <div class="card-body">
+                        <h3>${item.title}</h3>
+                        <div class="btn-group">
+                            <button class="btn btn-play" onclick="playVideo('${item.url}')">▶ Play</button>
+                            <button class="btn btn-del" onclick="deleteItem('${item.id}', '${item.url}')">Remove</button>
+                        </div>
+                    </div>
+                `;
+                contentGrid.appendChild(card);
+            });
+        }
+
+        // 3. Play Video Function
+        function playVideo(videoUrl) {
+            // Main page par bhej kar wahan play karega
+            window.location.href = `index-4-1.html?offline_play=${encodeURIComponent(videoUrl)}`;
+        }
+
+        // 4. Delete Logic (Cache aur LocalStorage dono se)
+        async function deleteItem(itemId, videoUrl) {
+            if(confirm("Are you sure you want to remove this?")) {
+                try {
+                    let storageKey = currentMode === 'history' ? 'my_history' : 'my_downloads';
+                    
+                    // Agar download delete kar rahe hain, toh Cache API se bhi delete karo (Aapka original code)
+                    if(currentMode === 'downloads') {
+                        const cache = await caches.open('hotfake-cache-v2');
+                        await cache.delete(videoUrl); 
+                    }
+                    
+                    let dataList = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                    dataList = dataList.filter(i => i.id !== itemId);
+                    localStorage.setItem(storageKey, JSON.stringify(dataList));
+                    
+                    loadData(); 
+                } catch (err) { console.error(err); }
+            }
+        }
+
+        // 5. Background Fetch & Progress Bar Logic (Aapka EXACT Original Code)
+        async function processPendingDownload() {
+            const pending = localStorage.getItem('pending_download');
+            if (!pending) return; 
+            
+            // Sirf tab dikhao jab Downloads tab open ho
+            if(currentMode !== 'downloads') return;
+            
+            const movie = JSON.parse(pending);
+            localStorage.removeItem('pending_download'); 
+            
+            const uiSection = document.getElementById('activeDownloadSection');
+            const uiTitle = document.getElementById('dlTitle');
+            const uiStatus = document.getElementById('dlStatusText');
+            const uiProgress = document.getElementById('dlProgress');
+            const uiPercent = document.getElementById('dlPercent');
+
+            uiSection.style.display = 'block';
+            uiTitle.innerText = movie.title;
+            uiStatus.innerText = "Extracting video link...";
+            uiStatus.style.color = "rgba(255,255,255,0.6)"; 
+            
+            try {
+                const res = await fetch(WORKER_URL + encodeURIComponent(movie.url));
+                const data = await res.json();
+                const directUrl = (data.direct_urls && data.direct_urls.length > 0) ? data.direct_urls[0] : data.direct_url;
+                
+                if(!directUrl) throw new Error("Link extract failed (Worker Error)");
+                uiStatus.innerText = "Downloading safely...";
+
+                const videoRes = await fetch(directUrl);
+                
+                if (!videoRes.ok) {
+                    throw new Error(`Server Blocked (Status: ${videoRes.status})`);
+                }
+
+                const cache = await caches.open('hotfake-cache-v2');
+                const contentLength = videoRes.headers.get('content-length');
+                
+                if (!contentLength || !videoRes.body) {
+                    uiProgress.style.width = '100%';
+                    uiPercent.innerText = "Saving...";
+                    await cache.put(directUrl, videoRes.clone());
+                } else {
+                    const total = parseInt(contentLength, 10);
+                    let loaded = 0;
+                    const reader = videoRes.body.getReader();
+                    
+                    const stream = new ReadableStream({
+                        async start(controller) {
+                            while (true) {
+                                const {done, value} = await reader.read();
+                                if (done) break;
+                                loaded += value.length;
+                                const percent = Math.round((loaded/total)*100);
+                                uiProgress.style.width = percent + '%';
+                                uiPercent.innerText = percent + '%';
+                                controller.enqueue(value);
+                            }
+                            controller.close();
+                        }
+                    });
+                    
+                    const newResponse = new Response(stream, { headers: videoRes.headers });
+                    await cache.put(directUrl, newResponse);
+                }
+                
+                let offlineMovies = JSON.parse(localStorage.getItem('my_downloads') || '[]');
+                offlineMovies = offlineMovies.filter(m => m.id !== movie.id);
+                offlineMovies.push({ id: movie.id, title: movie.title, url: directUrl, thumb: movie.thumb });
+                localStorage.setItem('my_downloads', JSON.stringify(offlineMovies));
+                
+                uiSection.style.display = 'none';
+                loadData();
+                
+            } catch(e) {
+                console.error("Download Error Details:", e);
+                uiStatus.innerText = "Error: " + e.message;
+                uiStatus.style.color = "#E63946"; 
+            }
+        }
+
+        // Initialize First Load
+        loadData();
+        processPendingDownload();
+    </script>
+</body>
+</html>
