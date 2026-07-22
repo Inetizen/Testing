@@ -97,17 +97,15 @@
         const WORKER_URL = "https://shy-heart-bf9d.ekgf2003.workers.dev/?url=";
         let currentMode = 'downloads'; 
 
-        // 1. Tab Switch Logic
         function switchTab(mode) {
             document.getElementById('tabHistory').classList.remove('active');
             document.getElementById('tabDownloads').classList.remove('active');
             
             if(mode === 'history') {
                 document.getElementById('tabHistory').classList.add('active');
-                document.getElementById('activeDownloadSection').style.display = 'none'; // History me progress bar hide
+                document.getElementById('activeDownloadSection').style.display = 'none'; 
             } else {
                 document.getElementById('tabDownloads').classList.add('active');
-                // Download tab me aate hi check karega agar koi download pending hai
                 if(localStorage.getItem('pending_download')) {
                     document.getElementById('activeDownloadSection').style.display = 'block';
                 }
@@ -117,7 +115,6 @@
             loadData();
         }
 
-        // 2. Grid Load Logic (Dono History aur Downloads ke liye)
         function loadData() {
             const contentGrid = document.getElementById('contentGrid');
             let dataList = [];
@@ -151,21 +148,17 @@
             });
         }
 
-        // 3. Play Video Function
         function playVideo(videoUrl) {
-            // Main page par bhej kar wahan play karega
             window.location.href = `index.html?offline_play=${encodeURIComponent(videoUrl)}`;
         }
 
-        // 4. Delete Logic (Cache aur LocalStorage dono se)
         async function deleteItem(itemId, videoUrl) {
             if(confirm("Are you sure you want to remove this?")) {
                 try {
                     let storageKey = currentMode === 'history' ? 'my_history' : 'my_downloads';
                     
-                    // Agar download delete kar rahe hain, toh Cache API se bhi delete karo
                     if(currentMode === 'downloads') {
-                        const cache = await caches.open('hotfake-cache-v4');
+                        const cache = await caches.open('hotfake-cache-v6');
                         await cache.delete(videoUrl); 
                     }
                     
@@ -178,12 +171,10 @@
             }
         }
 
-        // 5. Background Fetch & Progress Bar Logic
         async function processPendingDownload() {
             const pending = localStorage.getItem('pending_download');
             if (!pending) return; 
             
-            // Sirf tab dikhao jab Downloads tab open ho
             if(currentMode !== 'downloads') return;
             
             const movie = JSON.parse(pending);
@@ -205,17 +196,14 @@
                 const data = await res.json();
                 const directUrl = (data.direct_urls && data.direct_urls.length > 0) ? data.direct_urls[0] : data.direct_url;
                 
-                if(!directUrl) throw new Error("Link extract failed (Worker Error)");
+                if(!directUrl) throw new Error("Link extract failed");
                 uiStatus.innerText = "Downloading safely...";
 
                 const videoRes = await fetch(directUrl);
                 
-                if (!videoRes.ok) {
-                    throw new Error(`Server Blocked (Status: ${videoRes.status})`);
-                }
+                if (!videoRes.ok) { throw new Error(`Server Blocked`); }
 
-                // Cache v4 use kiya gaya hai taaki nayi SW settings se match kare
-                const cache = await caches.open('hotfake-cache-v4');
+                const cache = await caches.open('hotfake-cache-v6');
                 const contentLength = videoRes.headers.get('content-length');
                 
                 if (!contentLength || !videoRes.body) {
@@ -261,7 +249,6 @@
             }
         }
 
-        // Initialize First Load
         loadData();
         processPendingDownload();
     </script>
