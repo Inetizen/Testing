@@ -222,10 +222,10 @@
     <!-- SUPPORT REQUESTS PAGE -->
     <div class="page" id="requestsPage">
         <h2>User Support Requests</h2>
-        <p style="color:var(--muted); font-size: 0.85rem;">Manage tickets from banned users. Deleting a request allows the user to send a new one.</p>
+        <p style="color:var(--muted); font-size: 0.85rem;">Users on the contact page will see your reply live. Mark as Hacker to permanently block their device.</p>
         <div class="card-panel" style="margin-top:1.5rem; overflow-x:auto;">
             <table>
-                <thead><tr><th>Device / Reg ID</th><th>User Info</th><th>Message</th><th>Location</th><th style="text-align:right;">Action</th></tr></thead>
+                <thead><tr><th>Device / Reg ID</th><th>User Info</th><th>Message</th><th>Location</th><th style="text-align:right;">Actions & Reply</th></tr></thead>
                 <tbody id="requestsTbody"></tbody>
             </table>
         </div>
@@ -765,29 +765,65 @@
           });
       });
 
+      // ==========================================
+      // 📩 NEW: SUPPORT REQUESTS LOGIC (REPLY & HACKER BAN)
+      // ==========================================
       onValue(ref(db, 'support_requests'), snap => {
           const data = snap.val() || {};
           const tb = document.getElementById('requestsTbody'); tb.innerHTML = '';
           Object.keys(data).reverse().forEach(k => {
               const req = data[k];
+              
+              let statusBadge = '<span style="color:#f0ad4e;">⏳ Pending</span>';
+              if(req.status === 'replied') statusBadge = '<span style="color:var(--green);">✅ Replied</span>';
+              if(req.status === 'hacker_ban') statusBadge = '<span style="color:red; font-weight:bold;">☠️ Hacker</span>';
+
               tb.innerHTML += `<tr>
-                  <td style="font-size:0.75rem; color:var(--red); font-family:monospace;">${req.regId}</td>
-                  <td style="font-size:0.8rem;"><b>Name:</b> ${req.name}<br><b>Contact:</b> ${req.contactInfo}</td>
-                  <td style="font-size:0.85rem;">${req.message}</td>
-                  <td style="font-size:0.8rem;">
-                      OS: ${req.os}<br>
-                      <a href="https://www.google.com/maps?q=${req.lat},${req.lon}" target="_blank" style="color:var(--green); text-decoration:underline;">📍 Maps</a>
+                  <td>
+                      <span style="font-size:0.75rem; color:var(--red); font-family:monospace;">ID: ${req.regId}</span><br>
+                      <span style="font-size:0.8rem;"><b>Name:</b> ${req.name}<br><b>Contact:</b> ${req.contactInfo}</span><br>
+                      ${statusBadge}
                   </td>
-                  <td style="text-align:right;">
-                      <button class="btn btn-red" style="padding:0.4rem 0.8rem;" onclick="deleteRequest('${k}')">✅ Solved</button>
+                  <td>
+                      <div style="font-size:0.85rem; margin-bottom:5px;">${req.message}</div>
+                  </td>
+                  <td>
+                      <div style="font-size:0.75rem; color:var(--muted);"><a href="https://www.google.com/maps?q=${req.lat},${req.lon}" target="_blank" style="color:var(--green); text-decoration:underline;">📍 Location</a><br>OS: ${req.os}</div>
+                  </td>
+                  <td style="text-align:right; min-width: 250px;">
+                      ${req.status !== 'hacker_ban' ? `
+                      <input type="text" id="replyMsg_${k}" placeholder="Custom Admin Reply..." class="inp" style="width:100%; padding:8px; margin-bottom:8px; font-size:0.8rem;">
+                      <div style="display:flex; gap:5px; justify-content:flex-end;">
+                          <button class="btn btn-green" style="padding:0.4rem 0.8rem;" onclick="sendReply('${k}')">Reply</button>
+                          <button class="btn btn-danger" style="padding:0.4rem 0.8rem;" onclick="markHacker('${k}', '${req.regId}')">☠️ Ban</button>
+                      </div>` : `<button class="btn btn-gray" onclick="deleteRequest('${k}')">Remove Log</button>`}
                   </td>
               </tr>`;
           });
       });
-      window.deleteRequest = (id) => { if(confirm("Mark as Solved and delete?")) remove(ref(db, 'support_requests/' + id)); };
+
+      window.sendReply = function(id) {
+          const msg = document.getElementById(`replyMsg_${id}`).value.trim();
+          if(!msg) return alert("Please type a reply message first.");
+          update(ref(db, `support_requests/${id}`), { status: 'replied', adminMessage: msg }).then(() => {
+              alert("Reply sent to user!");
+          });
+      };
+
+      window.markHacker = function(reqId, userId) {
+          if(confirm("DANGER: Are you sure you want to PERMANENTLY ban this user for Hacking/Bypassing? They will never be able to access the platform again.")) {
+              update(ref(db, `support_requests/${reqId}`), { status: 'hacker_ban', adminMessage: 'Banned for illegal activities.' });
+              update(ref(db, `users/${userId}`), { banned: true, banReason: 'hack' });
+              alert("User marked as Hacker and permanently banned ☠️");
+          }
+      };
+
+      window.deleteRequest = function(id) {
+          if(confirm("Remove this request log?")) remove(ref(db, `support_requests/${id}`));
+      };
 
       // ==========================================
-      // ADVANCED KEY GENERATOR (FIXED)
+      // ADVANCED KEY GENERATOR
       // ==========================================
       function generateRandomKey(length=8) {
           const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; let result = '';
@@ -801,7 +837,6 @@
           const targetDevice = document.getElementById('pinDeviceSelect').value;
           const limit = parseInt(document.getElementById('pinLimit').value) || 1;
           
-          // 🔥 BUG FIX: Sanitized Custom PIN (Firebase strictly avoids . # $ [ ])
           let customPin = document.getElementById('pinCode').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, ''); 
           const bulkCount = parseInt(document.getElementById('pinBulkCount').value) || 1;
           const blockPC = document.getElementById('pinBlockPC').checked;
@@ -826,16 +861,16 @@
           const updates = {};
           if(bulkCount === 1) {
               const finalKey = customPin || generateRandomKey();
-              updates[`premium_pins/${finalKey}`] = keyDataTemplate;
+              updates[finalKey] = keyDataTemplate; 
           } else {
               for(let i=0; i<bulkCount; i++) {
                   const prefix = customPin ? customPin + "-" : "";
                   const finalKey = prefix + generateRandomKey(6);
-                  updates[`premium_pins/${finalKey}`] = keyDataTemplate;
+                  updates[finalKey] = keyDataTemplate;
               }
           }
 
-          update(ref(db), updates).then(() => {
+          update(ref(db, 'premium_pins'), updates).then(() => {
               alert(`Successfully generated ${bulkCount} Premium Key(s)!`);
               document.getElementById('pinCode').value = '';
           }).catch((err) => {
@@ -849,7 +884,6 @@
           Object.keys(data).forEach(k => {
               const p = data[k];
               
-              // 🔥 NEW: Beautiful categorization of Key Badges
               const typeBadge = p.type === 'master' ? '<span style="color:var(--green); font-weight:bold;">👑 Master (ALL)</span>' : 
                                 p.type === 'all_videos' ? '<span style="color:#ff8c94;">🎬 Master (Videos)</span>' : 
                                 p.type === 'all_images' ? '<span style="color:#ff8c94;">🖼️ Master (Images)</span>' : 
@@ -867,7 +901,7 @@
       });
       window.deletePin = (pin) => { if(confirm("Revoke this PIN immediately?")) remove(ref(db, `premium_pins/${pin}`)); };
 
-      // Users Tracking
+      // Users Tracking (With Hacker Badge)
       onValue(ref(db, 'users'), snap => {
           allUsersRaw = snap.val() || {};
           const tb = document.getElementById('userTableBody'); tb.innerHTML = '';
@@ -877,8 +911,14 @@
 
           Object.keys(allUsersRaw).reverse().forEach(k => {
               const u = allUsersRaw[k];
-              const isBanned = u.banned; const isLive = u.status === 'Live';
-              let statBadge = isBanned ? '<span class="badge-banned">🚫 Banned</span>' : (isLive ? '<span class="badge-active" style="background:#2DC653;color:#fff;">🟢 Live</span>' : '<span class="badge-banned" style="background:var(--surf3);color:var(--muted);">🔴 Offline</span>');
+              const isBanned = u.banned; const isHacker = u.banReason === 'hack'; const isLive = u.status === 'Live';
+              
+              let statBadge = '';
+              if(isHacker) statBadge = '<span class="badge-banned" style="background:#000; color:#ff4d4d; border:1px solid #ff4d4d;">☠️ HACKER</span>';
+              else if(isBanned) statBadge = '<span class="badge-banned">🚫 Banned</span>';
+              else if(isLive) statBadge = '<span class="badge-active" style="background:#2DC653;color:#fff;">🟢 Live</span>';
+              else statBadge = '<span class="badge-banned" style="background:var(--surf3);color:var(--muted);">🔴 Offline</span>';
+
               const shortOs = u.device?.os || 'Unknown';
               
               tb.innerHTML += `<tr>
@@ -889,7 +929,7 @@
                   <td style="text-align:right;"><button class="btn btn-gray" onclick="viewUser('${k}')">Full Details</button></td>
               </tr>`;
 
-              pinDevSelect.innerHTML += `<option value="${k}">${k} (${shortOs} - ${u.device?.browser || '?'})</option>`;
+              if(!isBanned) pinDevSelect.innerHTML += `<option value="${k}">${k} (${shortOs} - ${u.device?.browser || '?'})</option>`;
           });
       });
 
