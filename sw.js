@@ -1,21 +1,22 @@
-const CACHE_NAME = 'hotfake-cache-v4'; // Version updated to clear old errors
+const CACHE_NAME = 'hotfake-cache-v6'; // Version 6 forcibly clears old index-4-1 cache!
 
-// Aapki image ke hisaab se EXACT file names add kiye hain
+// Using relative paths for GitHub Pages subfolder compatibility
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/admin.html',
-  '/profile.html',
-  '/special.html',
-  '/permission.html',
-  '/100.png',
-  '/LargeTile.scale-100.png',
-  '/launchericon-144x144.png',
-  '/launchericon-512x512.png',
-  '/manifest.json'
+  './',
+  './index.html',
+  './admin.html',
+  './profile.html',
+  './special.html',
+  './permission.html',
+  './payment.html',
+  './contact-support.html',
+  './100.png',
+  './LargeTile.scale-100.png',
+  './launchericon-144x144.png',
+  './launchericon-512x512.png',
+  './manifest.json'
 ];
 
-// 1. Install Event (Advanced: Force activate new SW instantly)
 self.addEventListener('install', event => {
   self.skipWaiting(); 
   event.waitUntil(
@@ -25,14 +26,12 @@ self.addEventListener('install', event => {
         return cache.addAll(urlsToCache);
       })
       .catch(error => {
-        console.error('PWA Cache Error (Check if all file names are exactly correct):', error);
+        console.error('PWA Cache Error:', error);
       })
   );
 });
 
-// 2. Activate Event (Purane cache delete karne ke liye aur Instant Claim)
 self.addEventListener('activate', event => {
-  // Advanced: Claim clients immediately so updates apply without full refresh
   event.waitUntil(self.clients.claim());
   
   event.waitUntil(
@@ -49,9 +48,7 @@ self.addEventListener('activate', event => {
   );
 });
 
-// 3. Fetch Event
 self.addEventListener('fetch', event => {
-  // Firebase, API, Ad network, aur Cloudflare Worker ko ignore karein
   if (
       event.request.url.includes('firebaseio.com') || 
       event.request.url.includes('ipapi.co') ||
@@ -61,8 +58,6 @@ self.addEventListener('fetch', event => {
      return;
   }
 
-  // ADVANCED FIX: Ignore Video streaming range requests 
-  // (Ye video buffering ko fast karta hai aur cache errors rokkta hai)
   if (event.request.headers.get('range')) {
       return;
   }
@@ -70,8 +65,6 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Agar net chal raha hai, toh latest file cache mein update karo
-        // Basic type check se 3rd party garbage cache me save nahi hoga
         if (response && response.status === 200 && response.type === 'basic') {
             const responseClone = response.clone();
             caches.open(CACHE_NAME).then(cache => {
@@ -81,7 +74,6 @@ self.addEventListener('fetch', event => {
         return response;
       })
       .catch(() => {
-        // Agar OFFLINE hain, toh Cache mein check karo
         return caches.match(event.request);
       })
   );
