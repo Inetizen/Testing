@@ -20,6 +20,7 @@
     select.inp { appearance: none; }
     .btn { display:inline-flex; align-items:center; justify-content:center; gap:.5rem; padding:.7rem 1.4rem; border-radius:10px; font-family:var(--font); font-size:.9rem; font-weight:600; cursor:pointer; border:none; transition: all var(--ease); }
     .btn-red { background:var(--red); color:#fff; }
+    .btn-green { background:var(--green); color:#fff; }
     .btn-gray { background:var(--surf3); color:#fff; border:1px solid var(--border); }
     .btn-danger { background:rgba(230,57,70,.12); color:var(--red); border:1px solid rgba(230,57,70,.3); }
     .btn-full { width:100%; padding:.85rem; font-size:1rem; }
@@ -73,13 +74,14 @@
   <aside class="sidebar">
     <div class="sidebar-brand"><span style="color:var(--red);">▶</span> HotFake</div>
     <nav class="snav">
-      <div class="snav-title">Video Management</div>
-      <a class="slink active" data-page="addPage">➕ Add Video</a>
-      <a class="slink" data-page="managePage">📋 All Videos</a>
+      <div class="snav-title">Content Management</div>
+      <a class="slink active" data-page="addPage">➕ Add Content</a>
+      <a class="slink" data-page="managePage">📋 All Content</a>
       
       <div class="snav-title">Premium & Support</div>
-      <a class="slink" data-page="requestsPage">📩 Support Requests</a>
+      <a class="slink" data-page="pricingPage">💰 Pricing & Plans</a>
       <a class="slink" data-page="pinsPage">👑 Master/S-Keys</a>
+      <a class="slink" data-page="requestsPage">📩 Support Requests</a>
 
       <div class="snav-title">System & Users</div>
       <a class="slink" data-page="usersPage">👥 Users Tracking</a>
@@ -98,18 +100,20 @@
 
   <div class="content">
     
+    <!-- ADD VIDEO / IMAGE PAGE -->
     <div class="page active" id="addPage">
-      <h2>Add New Video</h2>
+      <h2>Add New Content</h2>
       <div class="card-panel" style="margin-top:1.5rem;">
-        <label>Video Title *</label><input class="inp" type="text" id="vtitle">
-        <label>Thumbnail Image URL *</label><input class="inp" type="url" id="vimage">
+        <label>Title *</label><input class="inp" type="text" id="vtitle">
+        <label>Thumbnail / Main Image URL *</label><input class="inp" type="url" id="vimage">
         
         <div style="display:flex; gap:1rem; flex-wrap:wrap;">
             <div style="flex:1; min-width:200px;">
-                <label>Category Type</label>
+                <label>Category Type (Video or Image)</label>
                 <select class="inp" id="vtype">
                   <option value="external">Normal Video (External)</option>
                   <option value="embed">Movie Mode (Internal Player)</option>
+                  <option value="image">🖼️ Premium Image / Photo Gallery</option>
                 </select>
             </div>
             <div style="flex:1; min-width:200px;">
@@ -128,27 +132,90 @@
             </div>
         </div>
 
-        <label>Main Video Link (Leave blank if adding parts)</label>
+        <label>Main Video Link (Leave blank if adding parts or if it's an Image)</label>
         <input class="inp" type="url" id="vlink" placeholder="https://...">
 
         <label style="margin-top:0.5rem;">Direct Download Link (Backup for App Offline Download)</label>
         <input class="inp" type="url" id="vDownloadLink" placeholder="https://drive.google.com/uc?export=download&id=...">
 
         <hr style="border:0; border-top:1px solid var(--border); margin:1.5rem 0;">
-        <h4 style="margin-bottom:1rem;">Episodes / Parts (Image & Video)</h4>
+        <h4 style="margin-bottom:1rem;">Episodes / Extra Images</h4>
         <div id="partsContainer"></div>
-        <button class="btn btn-gray" id="addPartBtn" style="margin-bottom:1.5rem;">+ Add Episode / Special</button>
-        <button class="btn btn-red btn-full" id="saveVidBtn">➕ Publish Video</button>
+        <button class="btn btn-gray" id="addPartBtn" style="margin-bottom:1.5rem;">+ Add Episode / Image</button>
+        <button class="btn btn-red btn-full" id="saveVidBtn">➕ Publish Content</button>
       </div>
     </div>
 
+    <!-- MANAGE CONTENT PAGE -->
     <div class="page" id="managePage">
-        <h2>Manage All Videos</h2>
+        <h2>Manage All Content</h2>
         <div class="card-panel" style="margin-top:1.5rem; overflow-x:auto;">
             <table>
                 <thead><tr><th>Title</th><th>Type</th><th>Access</th><th style="text-align:right;">Actions</th></tr></thead>
                 <tbody id="vlistTbody"></tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- ⚡ REAL SMS OTP DYNAMIC PRICING PAGE -->
+    <div class="page" id="pricingPage">
+        <h2>Dynamic Pricing & Subscription Control</h2>
+        <p style="color:var(--muted); font-size: 0.85rem;">Set real-time prices for plans. Protected by Real SMS OTP sent to Admin.</p>
+        
+        <div class="card-panel" style="margin-top:1.5rem; background: var(--surf2); border-color: var(--red);">
+            <h3 style="margin-bottom: 1rem; color: #fff;">Configure Plan Prices (in INR ₹)</h3>
+            
+            <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
+                <div style="flex:1; min-width:200px;">
+                    <label>📅 Monthly Plan Price (₹)</label>
+                    <input class="inp" type="number" id="priceMonthly" placeholder="e.g. 499">
+                </div>
+                <div style="flex:1; min-width:200px;">
+                    <label>📆 Weekly Plan Price (₹)</label>
+                    <input class="inp" type="number" id="priceWeekly" placeholder="e.g. 199">
+                </div>
+                <div style="flex:1; min-width:200px;">
+                    <label>⏱️ Daily Plan Price (₹)</label>
+                    <input class="inp" type="number" id="priceDaily" placeholder="e.g. 49">
+                </div>
+            </div>
+
+            <!-- Single Item Pricing separation -->
+            <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
+                <div style="flex:1; min-width:200px;">
+                    <label>👑 Single Video Unlock Price (₹)</label>
+                    <input class="inp" type="number" id="priceSingleVid" placeholder="e.g. 29">
+                </div>
+                <div style="flex:1; min-width:200px;">
+                    <label>🖼️ Single Image Unlock Price (₹)</label>
+                    <input class="inp" type="number" id="priceSingleImg" placeholder="e.g. 19">
+                </div>
+            </div>
+
+            <hr style="border:0; border-top:1px solid var(--border); margin:1.5rem 0;">
+
+            <h4 style="margin-bottom:10px; color: var(--red);">🛡️ Live OTP Security (Anti-Hack Protection)</h4>
+            <p style="font-size:0.8rem; color: var(--muted); margin-bottom: 10px;">Pricing update requires a real-time SMS OTP verification sent to the Admin's registered mobile number.</p>
+
+            <div id="recaptcha-container"></div> 
+
+            <div id="otpSetupSection">
+                <label>Admin Mobile Number (with country code, e.g. +919876543210)</label>
+                <div style="display:flex; gap:10px; max-width: 400px; margin-bottom:10px;">
+                    <input class="inp" type="tel" id="adminPhoneInput" placeholder="+91..." style="margin-bottom:0;">
+                    <button class="btn btn-gray" id="savePhoneBtn">Save Number</button>
+                </div>
+                <button class="btn btn-red" id="sendOtpBtn">📱 Send SMS OTP</button>
+            </div>
+
+            <div id="otpVerifySection" style="display:none; margin-top: 15px;">
+                <label>Enter 6-Digit OTP received on your mobile</label>
+                <div style="display:flex; gap:10px; max-width: 400px;">
+                    <input class="inp" type="number" id="otpInput" placeholder="••••••" style="margin-bottom:0;">
+                    <button class="btn btn-green" id="verifyAndSaveBtn">✅ Verify & Save Prices</button>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -175,14 +242,16 @@
                 <div style="flex:1;">
                     <label>Key Type</label>
                     <select class="inp" id="pinType" onchange="toggleSpecificVideo()">
-                        <option value="master">Master Key (Full Access to All Premium)</option>
-                        <option value="specific">S-Key (Specific Video Access Only)</option>
+                        <option value="master">Master Key (Full Access to ALL Content)</option>
+                        <option value="all_videos">Video Master (Access to ALL Videos)</option>
+                        <option value="all_images">Image Master (Access to ALL Images)</option>
+                        <option value="specific">S-Key (Specific Content Access Only)</option>
                     </select>
                 </div>
                 <div style="flex:1; display:none;" id="pinVideoWrapper">
-                    <label>Select Video (Only Premium videos listed)</label>
+                    <label>Select Content (Only Premium listed)</label>
                     <select class="inp" id="pinVideoSelect">
-                        <option value="">Loading Videos...</option>
+                        <option value="">Loading Content...</option>
                     </select>
                 </div>
             </div>
@@ -192,7 +261,6 @@
                     <label>Target User/Device</label>
                     <select class="inp" id="pinDeviceSelect">
                         <option value="ALL">ALL (Any device can use it)</option>
-                        <!-- Users will be populated here -->
                     </select>
                 </div>
                 <div style="flex:1;">
@@ -203,8 +271,8 @@
 
             <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
                 <div style="flex:1;">
-                    <label>Custom PIN (Leave blank for random generation)</label>
-                    <input class="inp" type="text" id="pinCode" placeholder="e.g. VIP2026">
+                    <label>Custom PIN (Alphanumeric only. Leave blank for random)</label>
+                    <input class="inp" type="text" id="pinCode" placeholder="e.g. VIP2026" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')">
                 </div>
                 <div style="flex:1;">
                     <label>Bulk Generate (How many keys?)</label>
@@ -228,6 +296,7 @@
         </div>
     </div>
 
+    <!-- USERS TRACKING -->
     <div class="page" id="usersPage">
       <h2>Advanced Audience Tracking</h2>
       <div class="card-panel" style="margin-top:1.5rem; overflow-x:auto;">
@@ -238,6 +307,7 @@
       </div>
     </div>
 
+    <!-- SECRET PHOTOS -->
     <div class="page" id="photosPage">
       <div style="display:flex; justify-content:space-between; align-items:center;">
           <div>
@@ -250,6 +320,7 @@
       <div class="photo-grid" id="photosGrid"></div>
     </div>
 
+    <!-- AD SYSTEM -->
     <div class="page" id="adsPage">
       <h2>Video Ad System</h2>
       <div class="card-panel" style="margin-top:1.5rem;">
@@ -272,6 +343,7 @@
       </div>
     </div>
 
+    <!-- SOCIAL LINKS -->
     <div class="page" id="socialPage">
       <h2>Social Links</h2>
       <div class="card-panel" style="margin-top:1.5rem;">
@@ -284,6 +356,7 @@
       </div>
     </div>
 
+    <!-- SETTINGS -->
     <div class="page" id="settingsPage">
       <h2>Settings</h2>
       <div class="card-panel" style="margin-top:1.5rem;">
@@ -309,13 +382,18 @@
 <!-- EDIT MODAL -->
 <div id="editModal" class="modal-wrap">
   <div class="modal-box">
-    <h3 style="margin-bottom:1rem;">✏️ Edit Video</h3>
+    <h3 style="margin-bottom:1rem;">✏️ Edit Content</h3>
     <input type="hidden" id="editId">
-    <label>Video Title</label><input class="inp" type="text" id="editTitle">
-    <label>Thumbnail URL</label><input class="inp" type="url" id="editImg">
+    <label>Title</label><input class="inp" type="text" id="editTitle">
+    <label>Thumbnail / Main Image URL</label><input class="inp" type="url" id="editImg">
     <div style="display:flex; gap:1rem; flex-wrap:wrap;">
         <div style="flex:1; min-width:150px;">
-            <label>Category Type</label><select class="inp" id="editType"><option value="external">External</option><option value="embed">Movie Mode</option></select>
+            <label>Category Type</label>
+            <select class="inp" id="editType">
+                <option value="external">External Video</option>
+                <option value="embed">Movie Mode</option>
+                <option value="image">Premium Image / Gallery</option>
+            </select>
         </div>
         <div style="flex:1; min-width:150px;">
             <label>Premium Locked? 👑</label><select class="inp" id="editPremium" style="border-color:var(--red);"><option value="false">No (Free)</option><option value="true">Yes (Premium)</option></select>
@@ -324,17 +402,17 @@
             <label>18+ Content?</label><select class="inp" id="edit18plus"><option value="false">No</option><option value="true">Yes</option></select>
         </div>
     </div>
-    <label>Main Video URL</label><input class="inp" type="url" id="editLink">
+    <label>Main Video URL (Leave blank if Image)</label><input class="inp" type="url" id="editLink">
     
-    <label style="margin-top:0.5rem;">Direct Download Link (Backup for App Offline Download)</label>
+    <label style="margin-top:0.5rem;">Direct Download Link</label>
     <input class="inp" type="url" id="editDownloadLink">
 
     <hr style="border:0; border-top:1px solid var(--border); margin:1.5rem 0;">
-    <h4 style="margin-bottom:1rem;">Edit Episodes / Parts</h4>
+    <h4 style="margin-bottom:1rem;">Edit Episodes / Images</h4>
     <div id="editPartsContainer"></div>
-    <button class="btn btn-gray" id="editAddPartBtn" style="margin-bottom:1.5rem; font-size:0.8rem;">+ Add Episode</button>
+    <button class="btn btn-gray" id="editAddPartBtn" style="margin-bottom:1.5rem; font-size:0.8rem;">+ Add Episode/Image</button>
     <div style="display:flex; gap:1rem;">
-      <button class="btn btn-red" id="saveEditBtn" style="flex:1;">Update Video</button>
+      <button class="btn btn-red" id="saveEditBtn" style="flex:1;">Update Content</button>
       <button class="btn btn-gray" onclick="document.getElementById('editModal').style.display='none'" style="flex:1;">Cancel</button>
     </div>
   </div>
@@ -363,7 +441,6 @@
         <div><b>Last Active</b><span id="umLast">None</span></div>
     </div>
 
-    <!-- LIVE PERMISSION PUSH -->
     <div style="background:var(--surf3); border:1px solid var(--red); padding:1rem; border-radius:10px; margin-bottom:1.5rem;">
         <h4 style="margin-bottom:0.5rem; color:#fff;">📡 Live Permission Force (Push to Device)</h4>
         <p style="font-size:0.8rem; color:var(--muted); margin-bottom:10px;">Select permissions and click Push. User will be silently checked and prompted if not granted.</p>
@@ -404,7 +481,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
   import { getDatabase, ref, set, update, remove, onValue, get } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCTfvrtZuHXk3RW91Dcwpbghhq--D6X2s8",
@@ -420,7 +497,6 @@
   let allVideosRaw = {};
   let allUsersRaw = {};
 
-  // Device Fingerprint generator for Admin Security
   function getAdminDeviceId() {
       const rawString = `${navigator.userAgent}|${navigator.hardwareConcurrency}|${navigator.deviceMemory}|${window.screen.width}x${window.screen.height}`;
       let hash = 0; for (let i = 0; i < rawString.length; i++) hash = ((hash << 5) - hash) + rawString.charCodeAt(i);
@@ -435,7 +511,6 @@
 
     signInWithEmailAndPassword(auth, email, pass)
       .then(() => {
-          // Admin Client-Side Device Check Logic
           get(ref(db, 'settings/admin_device')).then((snap) => {
               if (snap.exists() && snap.val() !== "OPEN") {
                   if (getAdminDeviceId() !== snap.val()) {
@@ -465,7 +540,6 @@
       signOut(auth).then(() => { location.reload(); }); 
   });
 
-
   function initAdmin() {
       document.querySelectorAll('.slink[data-page]').forEach(link => {
         link.addEventListener('click', function() {
@@ -477,7 +551,6 @@
         });
       });
 
-      // TOGGLE SPECIFIC VIDEO DROPDOWN FOR KEYS
       window.toggleSpecificVideo = function() {
           const type = document.getElementById('pinType').value;
           document.getElementById('pinVideoWrapper').style.display = (type === 'specific') ? 'block' : 'none';
@@ -512,21 +585,20 @@
           div.style.cssText = "display:flex; flex-direction:column; gap:8px; background:var(--surf2); padding:12px; border-radius:8px; border:1px solid var(--border); margin-bottom:12px;";
           div.innerHTML = `
             <div style="display:flex; gap:10px; width:100%; align-items:center;">
-                <input type="text" class="inp part-title" placeholder="Episode Title (e.g. 1)" value="${title}" style="flex:1; margin:0;">
+                <input type="text" class="inp part-title" placeholder="Episode / Image Title" value="${title}" style="flex:1; margin:0;">
                 <button class="btn btn-gray" onclick="this.parentElement.parentElement.remove()" style="padding:0.6rem 1rem;">X</button>
             </div>
             <div style="display:flex; gap:10px; width:100%;">
-                <input type="url" class="inp part-url" placeholder="Video Link" value="${url}" style="flex:1; margin:0;">
-                <input type="url" class="inp part-image" placeholder="Image URL (Optional)" value="${image}" style="flex:1; margin:0;">
+                <input type="url" class="inp part-url" placeholder="Video / Image Link" value="${url}" style="flex:1; margin:0;">
+                <input type="url" class="inp part-image" placeholder="Thumbnail URL (Optional)" value="${image}" style="flex:1; margin:0;">
             </div>
-            <input type="url" class="inp part-download" placeholder="Direct Download Link (Backup for this Ep)" value="${dlUrl}" style="width:100%; margin:0;">
+            <input type="url" class="inp part-download" placeholder="Direct Download Link (Backup)" value="${dlUrl}" style="width:100%; margin:0;">
           `;
           document.getElementById(containerId).appendChild(div);
       }
       document.getElementById('addPartBtn').addEventListener('click', () => addPartRow('partsContainer'));
       document.getElementById('editAddPartBtn').addEventListener('click', () => addPartRow('editPartsContainer'));
 
-      // Add New Video with Premium Flag
       document.getElementById('saveVidBtn').addEventListener('click', () => {
           let parts = [];
           document.querySelectorAll('#partsContainer > div').forEach(row => {
@@ -544,13 +616,12 @@
           };
           if(!data.title || !data.imageUrl) return alert("Title and Image required!");
           set(ref(db, 'videos/' + Date.now().toString(36)), data).then(() => {
-              alert("Video Added!"); 
+              alert("Content Added!"); 
               document.getElementById('vtitle').value = ''; document.getElementById('vimage').value = '';
               document.getElementById('vlink').value = ''; document.getElementById('vDownloadLink').value = ''; document.getElementById('partsContainer').innerHTML = '';
           });
       });
 
-      // Load Videos & Populate Key Generator Video List
       onValue(ref(db, 'videos'), snap => {
           allVideosRaw = snap.val() || {};
           const tb = document.getElementById('vlistTbody'); tb.innerHTML = '';
@@ -570,15 +641,12 @@
                   </td>
               </tr>`;
 
-              // Add only Premium videos to Key Generator dropdown
-              if(v.isPremium === 'true') {
-                  pinVidSelect.innerHTML += `<option value="${k}">${v.title}</option>`;
-              }
+              if(v.isPremium === 'true') { pinVidSelect.innerHTML += `<option value="${k}">${v.title}</option>`; }
           });
           
-          if(pinVidSelect.innerHTML === '') pinVidSelect.innerHTML = '<option value="">No Premium Videos Found</option>';
+          if(pinVidSelect.innerHTML === '') pinVidSelect.innerHTML = '<option value="">No Premium Content Found</option>';
       });
-      window.deleteVid = (id) => { if(confirm("Delete video?")) remove(ref(db, 'videos/'+id)); };
+      window.deleteVid = (id) => { if(confirm("Delete content?")) remove(ref(db, 'videos/'+id)); };
 
       window.openEdit = (id) => {
           const v = allVideosRaw[id];
@@ -609,10 +677,94 @@
               isPremium: document.getElementById('editPremium').value, 
               is18Plus: document.getElementById('edit18plus').value,
               parts: parts
-          }).then(() => { alert("Video Updated!"); document.getElementById('editModal').style.display = 'none'; });
+          }).then(() => { alert("Content Updated!"); document.getElementById('editModal').style.display = 'none'; });
       });
 
-      // Support Requests Logic
+      // ==========================================
+      // SMS OTP & PRICING
+      // ==========================================
+      onValue(ref(db, 'settings/admin_phone'), snap => {
+          if(snap.exists()) document.getElementById('adminPhoneInput').value = snap.val();
+      });
+
+      onValue(ref(db, 'settings/pricing'), snap => {
+          const p = snap.val() || {};
+          document.getElementById('priceMonthly').value = p.monthly || '';
+          document.getElementById('priceWeekly').value = p.weekly || '';
+          document.getElementById('priceDaily').value = p.daily || '';
+          document.getElementById('priceSingleVid').value = p.singleVid || '';
+          document.getElementById('priceSingleImg').value = p.singleImg || '';
+      });
+
+      document.getElementById('savePhoneBtn').addEventListener('click', () => {
+          const phone = document.getElementById('adminPhoneInput').value.trim();
+          if(!phone.includes("+")) return alert("Please include country code (+91 for India).");
+          set(ref(db, 'settings/admin_phone'), phone).then(() => alert("Admin phone number saved!"));
+      });
+
+      window.setupRecaptcha = function() {
+          if(!window.recaptchaVerifier) {
+              window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { 'size': 'invisible' });
+          }
+      }
+
+      document.getElementById('sendOtpBtn').addEventListener('click', async () => {
+          const adminPhone = document.getElementById('adminPhoneInput').value.trim();
+          if(!adminPhone) return alert("Please set Admin Phone Number first!");
+          
+          document.getElementById('sendOtpBtn').innerText = "Sending SMS...";
+          document.getElementById('sendOtpBtn').disabled = true;
+
+          setupRecaptcha();
+          const appVerifier = window.recaptchaVerifier;
+
+          signInWithPhoneNumber(auth, adminPhone, appVerifier)
+              .then((confirmationResult) => {
+                  window.confirmationResult = confirmationResult; 
+                  alert("✅ OTP SMS Sent successfully to " + adminPhone);
+                  document.getElementById('otpSetupSection').style.display = 'none';
+                  document.getElementById('otpVerifySection').style.display = 'block';
+              }).catch((error) => {
+                  alert("❌ Error sending OTP. Need Firebase Console Auth -> Phone enabled.");
+                  document.getElementById('sendOtpBtn').innerText = "📱 Send SMS OTP";
+                  document.getElementById('sendOtpBtn').disabled = false;
+              });
+      });
+
+      document.getElementById('verifyAndSaveBtn').addEventListener('click', () => {
+          const code = document.getElementById('otpInput').value.trim();
+          if(code.length !== 6) return alert("Enter 6-digit OTP.");
+
+          document.getElementById('verifyAndSaveBtn').innerText = "Verifying...";
+          document.getElementById('verifyAndSaveBtn').disabled = true;
+
+          confirmationResult.confirm(code).then((result) => {
+              const newPricing = {
+                  monthly: parseFloat(document.getElementById('priceMonthly').value) || 0,
+                  weekly: parseFloat(document.getElementById('priceWeekly').value) || 0,
+                  daily: parseFloat(document.getElementById('priceDaily').value) || 0,
+                  singleVid: parseFloat(document.getElementById('priceSingleVid').value) || 0,
+                  singleImg: parseFloat(document.getElementById('priceSingleImg').value) || 0,
+                  updatedAt: new Date().toISOString()
+              };
+
+              set(ref(db, 'settings/pricing'), newPricing).then(() => {
+                  alert("🔒 SUCCESS! Pricing updated securely.");
+                  document.getElementById('otpInput').value = '';
+                  document.getElementById('otpVerifySection').style.display = 'none';
+                  document.getElementById('otpSetupSection').style.display = 'block';
+                  document.getElementById('sendOtpBtn').innerText = "📱 Send SMS OTP";
+                  document.getElementById('sendOtpBtn').disabled = false;
+                  document.getElementById('verifyAndSaveBtn').innerText = "✅ Verify & Save Prices";
+                  document.getElementById('verifyAndSaveBtn').disabled = false;
+              });
+          }).catch((error) => {
+              alert("🚨 UNAUTHORIZED! Invalid OTP.");
+              document.getElementById('verifyAndSaveBtn').innerText = "✅ Verify & Save Prices";
+              document.getElementById('verifyAndSaveBtn').disabled = false;
+          });
+      });
+
       onValue(ref(db, 'support_requests'), snap => {
           const data = snap.val() || {};
           const tb = document.getElementById('requestsTbody'); tb.innerHTML = '';
@@ -632,11 +784,11 @@
               </tr>`;
           });
       });
-      window.deleteRequest = (id) => {
-          if(confirm("Mark as Solved and delete? User can send a new report after this.")) remove(ref(db, 'support_requests/' + id));
-      };
+      window.deleteRequest = (id) => { if(confirm("Mark as Solved and delete?")) remove(ref(db, 'support_requests/' + id)); };
 
-      // ADVANCED KEY GENERATOR LOGIC
+      // ==========================================
+      // ADVANCED KEY GENERATOR (FIXED)
+      // ==========================================
       function generateRandomKey(length=8) {
           const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; let result = '';
           for (let i = 0; i < length; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -648,16 +800,23 @@
           const targetVideo = document.getElementById('pinVideoSelect').value;
           const targetDevice = document.getElementById('pinDeviceSelect').value;
           const limit = parseInt(document.getElementById('pinLimit').value) || 1;
-          let customPin = document.getElementById('pinCode').value.trim().toUpperCase();
+          
+          // 🔥 BUG FIX: Sanitized Custom PIN (Firebase strictly avoids . # $ [ ])
+          let customPin = document.getElementById('pinCode').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, ''); 
           const bulkCount = parseInt(document.getElementById('pinBulkCount').value) || 1;
           const blockPC = document.getElementById('pinBlockPC').checked;
 
-          if(type === 'specific' && !targetVideo) return alert("Please select a specific Premium Video first!");
+          if(type === 'specific' && !targetVideo) return alert("Please select a specific Premium Content first!");
           if(bulkCount > 50) return alert("Maximum 50 keys can be generated at once to avoid spam.");
+
+          let finalTarget = "ALL";
+          if (type === 'specific') finalTarget = targetVideo;
+          else if (type === 'all_videos') finalTarget = "ALL_VIDEOS";
+          else if (type === 'all_images') finalTarget = "ALL_IMAGES";
 
           const keyDataTemplate = {
               type: type,
-              targetVideo: type === 'specific' ? targetVideo : "ALL",
+              targetVideo: finalTarget,
               deviceId: targetDevice,
               limit: limit,
               blockPC: blockPC,
@@ -679,6 +838,8 @@
           update(ref(db), updates).then(() => {
               alert(`Successfully generated ${bulkCount} Premium Key(s)!`);
               document.getElementById('pinCode').value = '';
+          }).catch((err) => {
+              alert("Error generating keys: " + err.message);
           });
       });
 
@@ -687,7 +848,13 @@
           const tb = document.getElementById('pinsTbody'); tb.innerHTML = '';
           Object.keys(data).forEach(k => {
               const p = data[k];
-              const typeBadge = p.type === 'master' ? '<span style="color:var(--green); font-weight:bold;">👑 Master</span>' : '<span style="color:#ff8c94;">🎬 S-Key</span>';
+              
+              // 🔥 NEW: Beautiful categorization of Key Badges
+              const typeBadge = p.type === 'master' ? '<span style="color:var(--green); font-weight:bold;">👑 Master (ALL)</span>' : 
+                                p.type === 'all_videos' ? '<span style="color:#ff8c94;">🎬 Master (Videos)</span>' : 
+                                p.type === 'all_images' ? '<span style="color:#ff8c94;">🖼️ Master (Images)</span>' : 
+                                '<span style="color:#ff8c94;">🎯 S-Key (Specific)</span>';
+              
               const pcBlockTxt = p.blockPC ? '<br><span style="font-size:0.7rem; color:#ff8c94;">🚫 PC Blocked</span>' : '';
               
               tb.innerHTML += `<tr>
@@ -700,7 +867,7 @@
       });
       window.deletePin = (pin) => { if(confirm("Revoke this PIN immediately?")) remove(ref(db, `premium_pins/${pin}`)); };
 
-      // User Tracking Logic & Populate Devices
+      // Users Tracking
       onValue(ref(db, 'users'), snap => {
           allUsersRaw = snap.val() || {};
           const tb = document.getElementById('userTableBody'); tb.innerHTML = '';
@@ -722,7 +889,6 @@
                   <td style="text-align:right;"><button class="btn btn-gray" onclick="viewUser('${k}')">Full Details</button></td>
               </tr>`;
 
-              // Add to PIN Device Selector
               pinDevSelect.innerHTML += `<option value="${k}">${k} (${shortOs} - ${u.device?.browser || '?'})</option>`;
           });
       });
