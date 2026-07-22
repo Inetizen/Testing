@@ -1,13 +1,16 @@
-const CACHE_NAME = 'hotfake-cache-v3'; // Version updated for new files
+const CACHE_NAME = 'hotfake-cache-v4'; // Version updated to clear old errors
 
-// Nayi aur purani files add kar di gayi hain
+// Aapki image ke hisaab se EXACT file names add kiye hain
 const urlsToCache = [
   '/',
-  '/index-4-1.html',
-  '/profile.html',     // Updated from downloads.html
-  '/special.html',     // Premium video page
-  '/permission.html',  // GPS & Camera permission page
+  '/index.html',
+  '/admin.html',
+  '/profile.html',
+  '/special.html',
+  '/permission.html',
   '/100.png',
+  '/LargeTile.scale-100.png',
+  '/launchericon-144x144.png',
   '/launchericon-512x512.png',
   '/manifest.json'
 ];
@@ -20,6 +23,9 @@ self.addEventListener('install', event => {
       .then(cache => {
         console.log('Advanced PWA: Essential files cached!');
         return cache.addAll(urlsToCache);
+      })
+      .catch(error => {
+        console.error('PWA Cache Error (Check if all file names are exactly correct):', error);
       })
   );
 });
