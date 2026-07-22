@@ -1,1 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Select Plan & Checkout - HotFake Premium</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; min-height: 100vh; background: #07070F; color: #fff; font-family: 'Poppins', sans-serif; display: flex; flex-direction: column; align-items: center; user-select: none; }
+        
+        .header { width: 100%; padding: 15px 20px; background: rgba(15,15,28,0.9); border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100;}
+        .header h2 { margin: 0; font-size: 1.2rem; color: #E63946; font-weight: 700; }
+        .back-btn { color: white; text-decoration: none; font-size: 0.9rem; background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 50px; font-weight: 500; }
 
+        .container { width: 100%; max-width: 450px; padding: 20px; flex: 1; display: flex; flex-direction: column; }
+        
+        .plan-card { background: #181828; border: 2px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 18px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center;}
+        .plan-card.selected { border-color: #E63946; background: rgba(230,57,70,0.08); }
+        .plan-info h4 { margin: 0 0 4px 0; font-size: 1.05rem; }
+        .plan-info p { margin: 0; font-size: 0.75rem; color: #a5a5b5; }
+        .plan-price { font-size: 1.2rem; font-weight: 800; color: #2DC653; }
+
+        .btn-pay { background: linear-gradient(45deg, #E63946, #c1121f); color: white; width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 15px; box-shadow: 0 4px 20px rgba(230,57,70,0.4); transition: transform 0.2s;}
+        .btn-pay:hover { transform: scale(1.02); }
+
+        .btn-red { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 1.05rem; font-weight: 600; cursor: pointer; background: #E63946; color: white; box-shadow: 0 4px 15px rgba(230,57,70,0.3); }
+
+        #step1_plans { display: block; }
+        #step2_processing { display: none; text-align: center; padding-top: 40px; }
+        #step3_success { display: none; text-align: center; padding-top: 20px; }
+
+        .loader { border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid #2DC653; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .success-icon { font-size: 4rem; color: #2DC653; margin-bottom: 10px; }
+        .pin-display { background: rgba(45,198,83,0.1); border: 2px dashed #2DC653; padding: 20px; border-radius: 12px; font-size: 2.2rem; font-family: monospace; font-weight: 900; letter-spacing: 5px; color: #fff; margin: 20px 0; text-transform: uppercase;}
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>👑 Choose Your Plan</h2>
+        <a href="index.html" class="back-btn">Cancel</a>
+    </div>
+
+    <div class="container">
+        
+        <!-- STEP 1: Real-Time Plan Selector -->
+        <div id="step1_plans">
+            <p style="color: #a5a5b5; font-size: 0.85rem; margin-bottom: 20px; text-align: center;">Select a subscription tier or unlock this specific video instantly.</p>
+            
+            <div class="plan-card selected" onclick="selectPlan('single', this)">
+                <div class="plan-info">
+                    <h4>🎬 Single Video Pass</h4>
+                    <p>Unlock this specific video only</p>
+                </div>
+                <div class="plan-price" id="priceSingleDisplay">₹--</div>
+            </div>
+
+            <div class="plan-card" onclick="selectPlan('daily', this)">
+                <div class="plan-info">
+                    <h4>⏱️ Daily Pass</h4>
+                    <p>Full access for 24 hours</p>
+                </div>
+                <div class="plan-price" id="priceDailyDisplay">₹--</div>
+            </div>
+
+            <div class="plan-card" onclick="selectPlan('weekly', this)">
+                <div class="plan-info">
+                    <h4>📆 Weekly Pass</h4>
+                    <p>Full access for 7 days</p>
+                </div>
+                <div class="plan-price" id="priceWeeklyDisplay">₹--</div>
+            </div>
+
+            <div class="plan-card" onclick="selectPlan('monthly', this)">
+                <div class="plan-info">
+                    <h4>📅 Monthly VIP Pass</h4>
+                    <p>Full VIP access for 30 days (Best Value)</p>
+                </div>
+                <div class="plan-price" id="priceMonthlyDisplay">₹--</div>
+            </div>
+
+            <button class="btn-pay" id="rzp-button" onclick="startCheckout()">
+                Proceed to Pay ₹<span id="btnAmount">--</span>
+            </button>
+        </div>
+
+        <!-- STEP 2: Processing -->
+        <div id="step2_processing">
+            <div class="loader"></div>
+            <h3>Generating Access Key...</h3>
+            <p style="color: #a5a5b5; font-size: 0.9rem; margin-top: 15px;">Payment verified successfully! Generating your secure credentials...</p>
+        </div>
+
+        <!-- STEP 3: Success -->
+        <div id="step3_success">
+            <div class="success-icon">✅</div>
+            <h3>Access Granted!</h3>
+            <p style="color: #a5a5b5; font-size: 0.9rem;">Your secure Master/S-Key has been generated.</p>
+            <div class="pin-display" id="finalPinDisplay">----</div>
+            <button class="btn-red" onclick="copyPinAndGo()">📋 Copy PIN & Play Video</button>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCTfvrtZuHXk3RW91Dcwpbghhq--D6X2s8",
+            authDomain: "inshelp-f2cba.firebaseapp.com",
+            databaseURL: "https://inshelp-f2cba-default-rtdb.firebaseio.com",
+            projectId: "inshelp-f2cba"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetVid = urlParams.get('vid');
+        const targetDev = urlParams.get('dev');
+
+        if(!targetVid || !targetDev) {
+            alert("Security Error: Invalid Session.");
+            window.location.href = 'index.html';
+        }
+
+        let currentPrices = { single: 29, daily: 49, weekly: 199, monthly: 499 };
+        let selectedPlanType = 'single';
+        let selectedAmount = 29;
+
+        // Fetch Real-Time Pricing from Firebase
+        onValue(ref(db, 'settings/pricing'), snap => {
+            if(snap.exists()) {
+                const p = snap.val();
+                currentPrices = {
+                    single: p.single || 29,
+                    daily: p.daily || 49,
+                    weekly: p.weekly || 199,
+                    monthly: p.monthly || 499
+                };
+                
+                document.getElementById('priceSingleDisplay').innerText = `₹${currentPrices.single}`;
+                document.getElementById('priceDailyDisplay').innerText = `₹${currentPrices.daily}`;
+                document.getElementById('priceWeeklyDisplay').innerText = `₹${currentPrices.weekly}`;
+                document.getElementById('priceMonthlyDisplay').innerText = `₹${currentPrices.monthly}`;
+                
+                updateButtonAmount();
+            }
+        });
+
+        window.selectPlan = function(planType, element) {
+            document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedPlanType = planType;
+            updateButtonAmount();
+        }
+
+        function updateButtonAmount() {
+            selectedAmount = currentPrices[selectedPlanType];
+            document.getElementById('btnAmount').innerText = selectedAmount;
+        }
+
+        function generateKeyString() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; let res = '';
+            for (let i = 0; i < 6; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+            return res;
+        }
+
+        async function handleSuccessfulPayment(paymentId) {
+            document.getElementById('step1_plans').style.display = 'none';
+            document.getElementById('step2_processing').style.display = 'block';
+
+            const newKey = generateKeyString();
+            
+            // Determine if Master Key or Specific Key based on user selection
+            const isMaster = (selectedPlanType === 'monthly' || selectedPlanType === 'weekly' || selectedPlanType === 'daily');
+            
+            const keyData = {
+                type: isMaster ? 'master' : 'specific',
+                targetVideo: isMaster ? 'ALL' : targetVid,
+                deviceId: targetDev,
+                limit: isMaster ? 50 : 5, // Master keys get more usage capacity
+                planDuration: selectedPlanType,
+                blockPC: false,
+                paymentId: paymentId,
+                created: new Date().toISOString()
+            };
+
+            await set(ref(db, `premium_pins/${newKey}`), keyData);
+
+            setTimeout(() => {
+                document.getElementById('step2_processing').style.display = 'none';
+                document.getElementById('step3_success').style.display = 'block';
+                document.getElementById('finalPinDisplay').innerText = newKey;
+            }, 1200);
+        }
+
+        window.startCheckout = function() {
+            var options = {
+                "key": "YOUR_RAZORPAY_KEY_ID_HERE", // Admin's Razorpay Key
+                "amount": (selectedAmount * 100).toString(), // convert to paise
+                "currency": "INR",
+                "name": "HotFake Premium",
+                "description": `Pass: ${selectedPlanType.toUpperCase()}`,
+                "handler": function (response) {
+                    handleSuccessfulPayment(response.razorpay_payment_id);
+                },
+                "theme": { "color": "#E63946" }
+            };
+            var rzp = new Razorpay(options);
+            rzp.open();
+        }
+
+        window.copyPinAndGo = function() {
+            const pin = document.getElementById('finalPinDisplay').innerText;
+            navigator.clipboard.writeText(pin).then(() => {
+                alert("Key Copied! Pasting on unlock screen.");
+                window.location.href = `special.html?id=${targetVid}`;
+            });
+        };
+    </script>
+</body>
+</html>
