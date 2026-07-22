@@ -1,7 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /admin.html
-Disallow: /admin-1-1.html
+Disallow: /admin.html
 Disallow: /vivaan-panel.html
 Disallow: /special.html
 Disallow: /permission.html
