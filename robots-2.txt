@@ -1,6 +1,9 @@
 User-agent: *
 Allow: /
 Disallow: /admin.html
+Disallow: /admin-1-1.html
 Disallow: /vivaan-panel.html
+Disallow: /special.html
+Disallow: /permission.html
 
 Sitemap: https://hotfakes.netlify.app/sitemap.xml
