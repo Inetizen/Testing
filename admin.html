@@ -10,7 +10,6 @@
     :root { --bg: #07070F; --surf: #0F0F1C; --surf2: #181828; --surf3: #1F1F34; --red: #E63946; --red-h: #c1121f; --green: #2DC653; --text: #F0F0FF; --muted: #6E6E98; --border: rgba(255,255,255,0.07); --radius: 14px; --font: 'Poppins', sans-serif; --ease: .25s cubic-bezier(.4,0,.2,1); --sidebar:260px; }
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:var(--font); background:var(--bg); color:var(--text); }
-    .icon { font-size: 0.9em; margin-right: 4px; }
     
     /* Login & Security Screens */
     #loginScreen { min-height:100vh; display:flex; align-items:center; justify-content:center; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(230,57,70,.2) 0%, transparent 70%); }
@@ -55,13 +54,6 @@
     .modal-wrap { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:1000; align-items:center; justify-content:center; padding:1rem; backdrop-filter: blur(5px);}
     .modal-box { background:var(--surf); border:1px solid var(--red); border-radius:var(--radius); padding:2rem; width:100%; max-width:950px; max-height:90vh; overflow-y:auto;}
     
-    /* SMALL AUTH MODAL FOR KEYS/PRICE */
-    .auth-modal { max-width: 400px; text-align: center; border: 1px solid var(--red); }
-    .auth-modal h3 { margin-bottom: 10px; color: var(--red); }
-    
-    .user-chk-lbl { display: flex; align-items: center; width: 100%; padding: 5px; border-radius: 5px; }
-    .user-chk-lbl:hover { background: var(--surf2); }
-    
     .action-row { padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
     .action-row:last-child { border-bottom: none; }
 
@@ -73,22 +65,30 @@
     .photo-card { background: var(--surf2); padding: 10px; border-radius: 12px; border: 1px solid var(--border); text-align: center; }
     .photo-card img { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.1); }
     .photo-card p { font-size: 0.8rem; color: var(--muted); word-break: break-all; margin-bottom: 3px; }
-
+    
     @media (max-width:700px) { :root { --sidebar:0px; } .sidebar { display:none; } .content { margin-left:0; padding:1.25rem 1rem; } }
   </style>
 </head>
 <body>
 
-<div id="recaptcha-container"></div> <!-- Firebase Invisible Recaptcha -->
-
-<!-- Secure Login Overlay -->
+<!-- Secure Login Overlay (Email/Password) -->
 <div id="loginScreen">
   <div class="login-box" id="loginFormBox">
     <div class="login-brand"><h1>▶ Secure Admin</h1></div>
     <input class="inp" type="email" id="emailInput" placeholder="Admin Email" style="margin-bottom: 0.8rem;">
-    <input class="inp" type="password" id="passInput" placeholder="Password">
-    <button id="loginBtn" class="btn btn-red btn-full"><span class="icon">🔑</span> Authenticate & Verify GPS</button>
+    <input class="inp" type="password" id="passInput" placeholder="Password" onkeydown="if(event.key==='Enter') document.getElementById('loginBtn').click()">
+    <button id="loginBtn" class="btn btn-red btn-full">🔑 Authenticate</button>
   </div>
+
+  <!-- New Device OTP Verification -->
+  <div class="login-box" id="deviceAuthBox" style="display:none; border-color: var(--red);">
+    <div class="login-brand"><h1 style="color:var(--red);">⚠️ Unrecognized Device</h1></div>
+    <p style="font-size:0.85rem; color:var(--muted); text-align:center; margin-bottom:15px;">Your device identifier or location has changed. We've sent an OTP to the registered Admin Phone Number to authorize this new device.</p>
+    <input class="inp" type="number" id="loginOtpInput" placeholder="Enter 6-Digit OTP">
+    <button id="verifyDeviceOtpBtn" class="btn btn-green btn-full">✅ Verify & Authorize</button>
+    <button class="btn btn-gray btn-full" style="margin-top:10px;" onclick="window.location.reload()">Cancel</button>
+  </div>
+  <div id="login-recaptcha"></div>
 </div>
 
 <!-- Main Admin Dashboard -->
@@ -97,26 +97,26 @@
     <div class="sidebar-brand"><span style="color:var(--red);">▶</span> HotFake</div>
     <nav class="snav">
       <div class="snav-title">Content Management</div>
-      <a class="slink active" data-page="addPage"><span class="icon">➕</span> Add Content</a>
-      <a class="slink" data-page="managePage"><span class="icon">📋</span> All Content</a>
+      <a class="slink active" data-page="addPage">➕ Add Content</a>
+      <a class="slink" data-page="managePage">📋 All Content</a>
       
       <div class="snav-title">Premium & Support</div>
-      <a class="slink" data-page="pricingPage"><span class="icon">💰</span> Pricing Control</a>
-      <a class="slink" data-page="pinsPage"><span class="icon">👑</span> Secure Key Gen</a>
-      <a class="slink" data-page="requestsPage"><span class="icon">📩</span> Support Requests</a>
+      <a class="slink" data-page="pricingPage">💰 Pricing Control</a>
+      <a class="slink" data-page="pinsPage">👑 Secure Key Gen</a>
+      <a class="slink" data-page="requestsPage">📩 Support Requests</a>
 
       <div class="snav-title">System & Users</div>
-      <a class="slink" data-page="usersPage"><span class="icon">👥</span> Users Tracking</a>
-      <a class="slink" data-page="photosPage"><span class="icon">📸</span> Secret Photos</a>
-      <a class="slink" data-page="adsPage"><span class="icon">💰</span> Ad System</a>
+      <a class="slink" data-page="usersPage">👥 Users Tracking</a>
+      <a class="slink" data-page="photosPage">📸 Secret Photos</a>
+      <a class="slink" data-page="adsPage">💰 Ad System</a>
 
       <div class="snav-title">Website Setup</div>
-      <a class="slink" data-page="socialPage"><span class="icon">🔗</span> Social Links</a>
-      <a class="slink" data-page="settingsPage"><span class="icon">⚙️</span> Settings & Security</a>
+      <a class="slink" data-page="socialPage">🔗 Social Links</a>
+      <a class="slink" data-page="settingsPage">⚙️ Settings & Security</a>
     </nav>
     <div style="border-top:1px solid var(--border); padding-top:1rem; margin-top:1rem;">
-      <a class="slink" href="index.html" target="_blank"><span class="icon">🌐</span> View Website</a>
-      <a class="slink" id="logoutBtn" style="cursor:pointer; color:#ff8c94;"><span class="icon">🚪</span> Logout</a>
+      <a class="slink" href="index.html" target="_blank">🌐 View Website</a>
+      <a class="slink" id="logoutBtn" style="cursor:pointer; color:#ff8c94;">🚪 Secure Logout</a>
     </div>
   </aside>
 
@@ -164,8 +164,7 @@
         <h4 style="margin-bottom:1rem;">Episodes / Extra Images</h4>
         <div id="partsContainer"></div>
         <button class="btn btn-gray" id="addPartBtn" style="margin-bottom:1.5rem;">+ Add Episode / Image</button>
-
-        <button class="btn btn-red btn-full" id="saveVidBtn"><span class="icon">➕</span> Publish Content</button>
+        <button class="btn btn-red btn-full" id="saveVidBtn">➕ Publish Content</button>
       </div>
     </div>
 
@@ -180,9 +179,11 @@
         </div>
     </div>
 
-    <!-- ⚡ SECURE DYNAMIC PRICING PAGE -->
+    <!-- ⚡ REAL SMS OTP DYNAMIC PRICING PAGE -->
     <div class="page" id="pricingPage">
         <h2>Dynamic Pricing Control</h2>
+        <p style="color:var(--muted); font-size: 0.85rem;">Protected by Server-Side SMS OTP. Phone number is hidden and fetched directly from secure Database.</p>
+        
         <div class="card-panel" style="margin-top:1.5rem; background: var(--surf2); border-color: var(--red);">
             <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
                 <div style="flex:1; min-width:150px;"><label>Monthly (₹)</label><input class="inp" type="number" id="priceMonthly"></div>
@@ -193,14 +194,28 @@
                 <div style="flex:1; min-width:150px;"><label>Single Video (₹)</label><input class="inp" type="number" id="priceSingleVid"></div>
                 <div style="flex:1; min-width:150px;"><label>Single Image (₹)</label><input class="inp" type="number" id="priceSingleImg"></div>
             </div>
+
             <hr style="border:0; border-top:1px solid var(--border); margin:1.5rem 0;">
-            <button class="btn btn-green" id="pricingAuthBtn" onclick="openSecureAuth('pricing')"><span class="icon">🔒</span> Request Live Firebase OTP</button>
+
+            <div id="pricingOtpSetup">
+                <button class="btn btn-red" id="sendPricingOtpBtn">📱 Send SMS OTP to Admin</button>
+            </div>
+
+            <div id="pricingOtpVerify" style="display:none; margin-top: 15px;">
+                <label>Enter 6-Digit OTP</label>
+                <div style="display:flex; gap:10px; max-width: 400px;">
+                    <input class="inp" type="number" id="pricingOtpInput" placeholder="••••••" style="margin-bottom:0;">
+                    <button class="btn btn-green" id="verifyPricingBtn">✅ Verify & Update Prices</button>
+                </div>
+            </div>
+            <div id="pricing-recaptcha"></div>
         </div>
     </div>
 
     <!-- SUPPORT REQUESTS PAGE -->
     <div class="page" id="requestsPage">
         <h2>User Support Requests</h2>
+        <p style="color:var(--muted); font-size: 0.85rem;">Users on the contact page will see your reply live. Mark as Hacker to permanently block their device.</p>
         <div class="card-panel" style="margin-top:1.5rem; overflow-x:auto;">
             <table>
                 <thead><tr><th>Device / Reg ID</th><th>User Info</th><th>Message</th><th>Location</th><th style="text-align:right;">Actions & Reply</th></tr></thead>
@@ -212,8 +227,10 @@
     <!-- 👑 ADVANCED PREMIUM KEYS GENERATOR -->
     <div class="page" id="pinsPage">
         <h2 style="color: var(--red);">👑 Advanced Key Generator</h2>
+        <p style="color:var(--muted); font-size: 0.85rem;">Strict device and browser targeting. Keys require OTP verification to generate.</p>
         
         <div class="card-panel" style="margin-top:1.5rem; background: var(--surf2); border-color: var(--red);">
+            
             <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
                 <div style="flex:1; min-width:250px;">
                     <label>Key Privilege Level</label>
@@ -230,13 +247,14 @@
                 </div>
             </div>
 
-            <label style="color:#fff;"><span class="icon">🛡️</span> Strict Environment Targeting</label>
-            <p style="font-size:0.75rem; color:var(--muted); margin-bottom:10px;">Unchecked = Blocked. If checked, selected ones can use the key.</p>
+            <!-- Targeting Filters -->
+            <label style="color:#fff;">🛡️ Strict Environment Targeting</label>
+            <p style="font-size:0.75rem; color:var(--muted); margin-bottom:10px;">Leave unchecked to allow any. If checked, ONLY selected ones can use the key.</p>
             
             <label>Allowed Operating Systems</label>
             <div class="checkbox-group" id="allowedOS">
                 <label><input type="checkbox" value="Android"> Android</label>
-                <label><input type="checkbox" value="iOS"> iOS / Mac</label>
+                <label><input type="checkbox" value="iOS"> iOS</label>
                 <label><input type="checkbox" value="Windows"> Windows</label>
                 <label><input type="checkbox" value="MacOS"> MacOS</label>
                 <label><input type="checkbox" value="Linux"> Linux/Kali</label>
@@ -251,10 +269,17 @@
                 <label><input type="checkbox" value="Samsung"> Samsung Internet</label>
             </div>
 
+            <label>Allowed Device Types</label>
+            <div class="checkbox-group" id="allowedDevices">
+                <label><input type="checkbox" value="Mobile"> Phone/Mobile</label>
+                <label><input type="checkbox" value="Tablet"> Tablet/iPad</label>
+                <label><input type="checkbox" value="Desktop"> PC/Laptop</label>
+            </div>
+
             <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
                 <div style="flex:1; min-width:250px;">
                     <label>Target Specific User(s) <span style="font-size: 0.7rem; color:var(--muted);">(Tick to allow)</span></label>
-                    <input type="text" id="userSearch" class="inp" placeholder="Search ID or Device..." style="padding: 8px; margin-bottom: 5px;">
+                    <input type="text" id="userSearch" class="inp" placeholder="🔍 Search ID or Browser..." style="padding: 8px; margin-bottom: 5px;">
                     <div class="checkbox-group" id="userCheckList" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; border: 1px solid rgba(255,255,255,0.1);">
                         <!-- Options generated dynamically -->
                     </div>
@@ -263,15 +288,27 @@
                 <div style="flex:1; min-width:100px;">
                     <label>Usage Limit (Per Key)</label>
                     <input class="inp" type="number" id="pinLimit" value="1" min="1">
-                    <label style="margin-top:10px;">Custom PIN String</label>
+                    
+                    <label style="margin-top:10px;">Custom PIN String (Optional)</label>
                     <input class="inp" type="text" id="pinCode" placeholder="e.g. VIP2026">
-                    <label style="margin-top:10px;">Bulk Quantity</label>
+                    
+                    <label style="margin-top:10px;">Bulk Quantity (Per Ticked User)</label>
                     <input class="inp" type="number" id="pinBulkCount" value="1" min="1" max="50">
                 </div>
             </div>
 
-            <hr style="border:0; border-top:1px solid var(--border); margin:1.5rem 0;">
-            <button class="btn btn-red" id="keyGenAuthBtn" onclick="openSecureAuth('keygen')"><span class="icon">⚡</span> Request Live Firebase OTP</button>
+            <div id="keygenOtpSetup">
+                <button class="btn btn-gray btn-full" id="sendKeyOtpBtn" style="border: 1px solid var(--red);">🔒 Send OTP to Generate Keys</button>
+            </div>
+            <div id="keygenOtpVerify" style="display:none; margin-top: 15px;">
+                <label style="color:var(--red);">Enter OTP to confirm creation</label>
+                <div style="display:flex; gap:10px;">
+                    <input class="inp" type="number" id="keygenOtpInput" placeholder="••••••" style="margin-bottom:0;">
+                    <button class="btn btn-red" id="verifyKeyOtpBtn">⚡ Verify & Generate</button>
+                </div>
+            </div>
+            <div id="keygen-recaptcha"></div>
+
         </div>
 
         <div class="card-panel" style="overflow-x:auto;">
@@ -292,7 +329,7 @@
         </table>
       </div>
     </div>
-    
+
     <!-- SECRET PHOTOS -->
     <div class="page" id="photosPage">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -343,49 +380,17 @@
     <div class="page" id="settingsPage">
       <h2>Settings & Security</h2>
       
-      <!-- STRICT ADMIN WHITELIST (OS & BROWSER) -->
       <div class="card-panel" style="margin-top:1.5rem; border-color:var(--red);">
-          <h3 style="margin-bottom:1rem; color:var(--red);"><span class="icon">🛡️</span> Strict Admin Whitelist</h3>
-          <p style="font-size:0.8rem; color:var(--muted); margin-bottom:1rem;">Only devices matching these selections can access the Admin Panel. Others will be blocked instantly.</p>
+          <h3 style="margin-bottom:1rem; color:var(--red);">🛡️ Admin Security Config</h3>
+          <p style="font-size:0.8rem; color:var(--muted); margin-bottom:1rem;">Your authorized phone number handles OTP security layers for device logins, key generation, and pricing.</p>
           
-          <label>Allowed OS</label>
-          <div class="checkbox-group" id="adminAllowedOS">
-              <label><input type="checkbox" value="Windows"> Windows</label>
-              <label><input type="checkbox" value="Android"> Android</label>
-              <label><input type="checkbox" value="iOS"> iOS / Mac</label>
-              <label><input type="checkbox" value="Linux"> Linux / Kali</label>
-          </div>
-
-          <label>Allowed Browsers</label>
-          <div class="checkbox-group" id="adminAllowedBrowsers">
-              <label><input type="checkbox" value="Chrome"> Google Chrome</label>
-              <label><input type="checkbox" value="Safari"> Safari</label>
-              <label><input type="checkbox" value="Samsung"> Samsung Internet</label>
-              <label><input type="checkbox" value="Firefox"> Firefox</label>
-              <label><input type="checkbox" value="Edge"> Edge</label>
-          </div>
-          <button class="btn btn-red" id="saveWhitelistBtn">Save Whitelist</button>
-      </div>
-
-      <!-- STRICT GPS LOCK -->
-      <div class="card-panel" style="border-color:var(--green);">
-          <h3 style="margin-bottom:1rem; color:var(--green);"><span class="icon">📍</span> Location Lock (Admin HQ)</h3>
-          <p style="font-size:0.8rem; color:var(--muted); margin-bottom:1rem;">Lock admin access to your exact current GPS coordinates. Anyone trying to login from another location (even with correct email/pass) will be blocked.</p>
-          <button class="btn btn-green" id="setHqBtn">Set Current Location as Admin HQ</button>
-          <p id="hqStatusTxt" style="font-size:0.8rem; margin-top:10px; color:var(--text);"></p>
-      </div>
-
-      <!-- FIREBASE PHONE AUTH LINK -->
-      <div class="card-panel">
-          <h3 style="margin-bottom:1rem;">📱 Firebase OTP Phone Link</h3>
-          <p style="font-size:0.8rem; color:var(--muted); margin-bottom:1rem;">Enter the testing phone number you registered in Firebase Console (e.g. +916505551234). We will use it to verify you securely.</p>
+          <label>Secure Admin Phone Number (with +91)</label>
           <div style="display:flex; gap:10px; max-width: 400px;">
-              <input class="inp" type="text" id="setAdminPhone" placeholder="Enter Phone Number with Country Code" style="margin-bottom:0;">
-              <button class="btn btn-gray" id="savePhoneBtn">Save Phone</button>
+              <input class="inp" type="tel" id="setAdminPhone" placeholder="+91..." style="margin-bottom:0;">
+              <button class="btn btn-red" id="saveAdminPhoneBtn">💾 Secure Save</button>
           </div>
       </div>
-      
-      <!-- General Settings -->
+
       <div class="card-panel">
           <h3 style="margin-bottom:1rem;">Brand Setup</h3>
           <label>Website Favicon URL</label>
@@ -401,20 +406,7 @@
           <button class="btn btn-danger" id="wipeBtn">🗑️ Delete All Videos</button>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- SECURE AUTH MODAL (Firebase OTP) -->
-<div id="secureAuthModal" class="modal-wrap">
-  <div class="modal-box auth-modal">
-    <h3><span class="icon">🔥</span> Firebase Live OTP Check</h3>
-    <p style="font-size:0.85rem; color:var(--muted); margin-bottom: 1rem;">Enter the verification code mapped to your testing number in Firebase.</p>
-    <input type="text" class="inp" id="authSecretInput" placeholder="Enter OTP Code (e.g. 896543)" style="text-align: center; letter-spacing: 2px;">
-    <input type="hidden" id="authActionType">
-    <div style="display: flex; gap: 10px;">
-        <button class="btn btn-green btn-full" id="confirmAuthBtn">Verify & Proceed</button>
-        <button class="btn btn-gray btn-full" onclick="document.getElementById('secureAuthModal').style.display='none'">Cancel</button>
-    </div>
   </div>
 </div>
 
@@ -501,7 +493,7 @@
   import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
   const firebaseConfig = {
-    apiKey: "YOUR_API_KEY", // Make sure to put your real API key here
+    apiKey: "AIzaSyCTfvrtZuHXk3RW91Dcwpbghhq--D6X2s8",
     authDomain: "inshelp-f2cba.firebaseapp.com",
     databaseURL: "https://inshelp-f2cba-default-rtdb.firebaseio.com",
     projectId: "inshelp-f2cba"
@@ -513,110 +505,95 @@
 
   let allVideosRaw = {};
   let allUsersRaw = {};
-  let currentAdminPhone = "";
-  let adminLat = null, adminLon = null;
+  let isAdminVerified = false; 
+  let adminInitDone = false;
 
-  // OS & BROWSER DETECTION LOGIC
-  function getSysInfo() {
-      const ua = navigator.userAgent;
-      let os = "Unknown", browser = "Unknown";
-      if(ua.indexOf("Win")!==-1) os="Windows";
-      else if(ua.indexOf("Mac")!==-1 && ua.indexOf("Mobile")===-1) os="MacOS";
-      else if(ua.indexOf("Linux")!==-1 && ua.indexOf("Android")===-1) os="Linux";
-      else if(ua.indexOf("Android")!==-1) os="Android";
-      else if(ua.indexOf("iPhone")!==-1 || ua.indexOf("iPad")!==-1) os="iOS";
-
-      if(ua.indexOf("Chrome")!==-1 && ua.indexOf("Edg")===-1 && ua.indexOf("OPR")===-1 && ua.indexOf("SamsungBrowser")===-1) browser="Chrome";
-      else if(ua.indexOf("Safari")!==-1 && ua.indexOf("Chrome")===-1) browser="Safari";
-      else if(ua.indexOf("Firefox")!==-1) browser="Firefox";
-      else if(ua.indexOf("Edg")!==-1) browser="Edge";
-      else if(ua.indexOf("SamsungBrowser")!==-1) browser="Samsung";
-      
-      return {os, browser};
+  function getAdminDeviceId() {
+      const rawString = `${navigator.userAgent}|${navigator.hardwareConcurrency}|${navigator.deviceMemory}|${window.screen.width}x${window.screen.height}`;
+      let hash = 0; for (let i = 0; i < rawString.length; i++) hash = ((hash << 5) - hash) + rawString.charCodeAt(i);
+      return Math.abs(hash).toString(36).toUpperCase();
   }
 
-  function getDistance(lat1, lon1, lat2, lon2) {
-      const R = 6371e3; // metres
-      const φ1 = lat1 * Math.PI/180;
-      const φ2 = lat2 * Math.PI/180;
-      const Δφ = (lat2-lat1) * Math.PI/180;
-      const Δλ = (lon2-lon1) * Math.PI/180;
-      const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
-      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
-  }
+  // --- LOGIN FLOW (EMAIL/PASSWORD RESTORED) ---
+  onAuthStateChanged(auth, (user) => {
+    if (user && isAdminVerified) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('adminDash').style.display = 'flex';
+      initAdmin();
+    } else if (!user) {
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('loginFormBox').style.display = 'block';
+      document.getElementById('deviceAuthBox').style.display = 'none';
+      document.getElementById('adminDash').style.display = 'none';
+      isAdminVerified = false;
+    }
+  });
 
-  // --- STRICT LOGIN FLOW WITH GPS AND WHITELIST ---
   document.getElementById('loginBtn').addEventListener('click', () => {
     const email = document.getElementById('emailInput').value;
     const pass = document.getElementById('passInput').value;
     if(!email || !pass) return alert("Enter credentials!");
+
+    document.getElementById('loginBtn').innerText = "Verifying...";
     
-    document.getElementById('loginBtn').innerText = "Fetching Security GPS...";
-
-    navigator.geolocation.getCurrentPosition((position) => {
-        adminLat = position.coords.latitude;
-        adminLon = position.coords.longitude;
+    signInWithEmailAndPassword(auth, email, pass).then(() => {
+        const currentDevId = getAdminDeviceId();
         
-        document.getElementById('loginBtn').innerText = "Authenticating...";
-
-        signInWithEmailAndPassword(auth, email, pass).then((userCred) => {
-            // Check Database for Strict Rules
-            get(ref(db, 'settings/admin_sec')).then(snap => {
-                const sec = snap.val() || {};
-                const sys = getSysInfo();
-                
-                // 1. Whitelist Check (Only if configured)
-                if (sec.whitelist) {
-                    if (sec.whitelist.os && sec.whitelist.os.length > 0 && !sec.whitelist.os.includes(sys.os)) {
-                        signOut(auth); return alert("❌ HIGH SECURITY BLOCK: Operating System ("+sys.os+") not allowed.");
-                    }
-                    if (sec.whitelist.browser && sec.whitelist.browser.length > 0 && !sec.whitelist.browser.includes(sys.browser)) {
-                        signOut(auth); return alert("❌ HIGH SECURITY BLOCK: Browser ("+sys.browser+") not allowed.");
-                    }
-                }
-                
-                // 2. GPS Location Check (Only if HQ is set)
-                if (sec.hq_location) {
-                    const dist = getDistance(adminLat, adminLon, sec.hq_location.lat, sec.hq_location.lon);
-                    if(dist > 2000) { // If more than 2KM away from HQ
-                        signOut(auth); return alert("❌ HIGH SECURITY BLOCK: Unrecognized GPS Location!");
-                    }
-                }
-
-                // If passes all checks
+        get(ref(db, 'settings/admin_sec')).then((snap) => {
+            const secData = snap.val() || {};
+            const savedDev = secData.device;
+            
+            // Device Strict Check
+            if (!savedDev || savedDev === "OPEN" || savedDev === currentDevId) {
+                if(!savedDev || savedDev === "OPEN") update(ref(db, 'settings/admin_sec'), { device: currentDevId });
+                isAdminVerified = true;
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('adminDash').style.display = 'flex';
                 initAdmin();
-            });
-        }).catch((e) => { 
-            alert('Incorrect Credentials'); 
-            document.getElementById('loginBtn').innerHTML = "<span class='icon'>🔑</span> Authenticate & Verify GPS"; 
+            } else {
+                // Device changed -> Need OTP
+                document.getElementById('loginFormBox').style.display = 'none';
+                document.getElementById('deviceAuthBox').style.display = 'block';
+                sendDeviceAuthOtp(secData.phone);
+            }
         });
-
-    }, (err) => {
-        alert("❌ HIGH SECURITY BLOCK: GPS Location MUST be enabled to access Admin Panel.");
-        document.getElementById('loginBtn').innerHTML = "<span class='icon'>🔑</span> Authenticate & Verify GPS";
+    }).catch(() => { 
+        alert('Incorrect Email or Password'); 
+        document.getElementById('loginBtn').innerText = "🔑 Authenticate"; 
     });
   });
 
-  onAuthStateChanged(auth, (user) => {
-    if (user && document.getElementById('loginScreen').style.display === 'none') {
-      initAdmin(); // Only init if already passed manual strict login screen
-    } else if (!user) {
-      document.getElementById('loginScreen').style.display = 'flex';
-      document.getElementById('adminDash').style.display = 'none';
-    }
+  document.getElementById('logoutBtn').addEventListener('click', () => { signOut(auth).then(() => location.reload()); });
+
+  function sendDeviceAuthOtp(adminPhone) {
+      if(!adminPhone) { signOut(auth); alert("Admin Phone not registered! Contact DB Owner."); return location.reload(); }
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'login-recaptcha', { 'size': 'invisible' });
+      signInWithPhoneNumber(auth, adminPhone, window.recaptchaVerifier).then((res) => {
+          window.loginConfirmationResult = res;
+      }).catch(e => { alert("Firebase Auth Error: " + e.message); signOut(auth); location.reload(); });
+  }
+
+  document.getElementById('verifyDeviceOtpBtn').addEventListener('click', () => {
+      const code = document.getElementById('loginOtpInput').value.trim();
+      if(code.length !== 6) return;
+      document.getElementById('verifyDeviceOtpBtn').innerText = "Authorizing...";
+      window.loginConfirmationResult.confirm(code).then(() => {
+          update(ref(db, 'settings/admin_sec'), { device: getAdminDeviceId() }).then(() => {
+              isAdminVerified = true;
+              document.getElementById('loginScreen').style.display = 'none';
+              document.getElementById('adminDash').style.display = 'flex';
+              initAdmin();
+          });
+      }).catch(() => { alert("Invalid OTP!"); signOut(auth); location.reload(); });
   });
 
-  document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth).then(() => location.reload()));
-
-  let adminInitDone = false;
-
+  // ==========================================
+  // MAIN ADMIN INITIALIZATION
+  // ==========================================
   function initAdmin() {
       if(adminInitDone) return;
       adminInitDone = true;
 
-      // Navigation
       document.querySelectorAll('.slink[data-page]').forEach(link => {
         link.addEventListener('click', function() {
           document.querySelectorAll('.slink').forEach(l => l.classList.remove('active'));
@@ -627,97 +604,19 @@
         });
       });
 
-      // --- ADMIN SETTINGS INIT (PHONE, WHITELIST, GPS) ---
+      // Settings (Save Admin Phone for OTPs)
       onValue(ref(db, 'settings/admin_sec'), snap => {
           const sec = snap.val() || {};
-          currentAdminPhone = sec.adminPhone || "";
-          if(currentAdminPhone) document.getElementById('setAdminPhone').placeholder = "Linked: " + currentAdminPhone.substring(0,6) + "*****";
-          
-          if(sec.whitelist) {
-              if(sec.whitelist.os) document.querySelectorAll('#adminAllowedOS input').forEach(c => { if(sec.whitelist.os.includes(c.value)) c.checked = true; });
-              if(sec.whitelist.browser) document.querySelectorAll('#adminAllowedBrowsers input').forEach(c => { if(sec.whitelist.browser.includes(c.value)) c.checked = true; });
-          }
-          if(sec.hq_location) {
-              document.getElementById('hqStatusTxt').innerText = "✅ HQ Locked. Coordinates saved in Database.";
-          }
+          if(sec.phone) document.getElementById('setAdminPhone').value = sec.phone;
       }, {onlyOnce: true});
-
-      document.getElementById('savePhoneBtn').addEventListener('click', () => {
-          const p = document.getElementById('setAdminPhone').value.trim();
-          if(!p.startsWith('+')) return alert("Include Country Code (e.g. +91)");
-          update(ref(db, 'settings/admin_sec'), { adminPhone: p }).then(() => alert("Firebase Target Phone Saved!"));
-      });
-
-      document.getElementById('saveWhitelistBtn').addEventListener('click', () => {
-          let os = []; document.querySelectorAll('#adminAllowedOS input:checked').forEach(c => os.push(c.value));
-          let browser = []; document.querySelectorAll('#adminAllowedBrowsers input:checked').forEach(c => browser.push(c.value));
-          update(ref(db, 'settings/admin_sec/whitelist'), { os, browser }).then(() => alert("✅ Admin Device Whitelist Locked."));
-      });
-
-      document.getElementById('setHqBtn').addEventListener('click', () => {
-          if(!adminLat) return alert("Location not available. Try logging in again.");
-          update(ref(db, 'settings/admin_sec/hq_location'), { lat: adminLat, lon: adminLon }).then(() => {
-              alert("✅ Admin HQ Location Locked!");
-              document.getElementById('hqStatusTxt').innerText = "✅ HQ Locked. Coordinates saved in Database.";
-          });
-      });
-
-      // --- FIREBASE LIVE OTP VERIFICATION (RECAPTCHA INIT) ---
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { 'size': 'invisible' });
-
-      window.openSecureAuth = (actionType) => {
-          if(!currentAdminPhone) return alert("❌ Error: Go to Settings and Setup Firebase Phone Number first.");
-          
-          let btnId = actionType === 'pricing' ? 'pricingAuthBtn' : 'keyGenAuthBtn';
-          let orgTxt = document.getElementById(btnId).innerHTML;
-          document.getElementById(btnId).innerHTML = "Connecting to Firebase...";
-
-          // Call Real Firebase Phone Auth
-          signInWithPhoneNumber(auth, currentAdminPhone, window.recaptchaVerifier)
-          .then((confirmationResult) => {
-              window.confirmationResult = confirmationResult;
-              document.getElementById('authActionType').value = actionType;
-              document.getElementById('authSecretInput').value = '';
-              document.getElementById('secureAuthModal').style.display = 'flex';
-              document.getElementById(btnId).innerHTML = orgTxt;
-          }).catch((error) => {
-              alert("❌ Firebase Auth Error. Check API keys or Phone Config. Error: " + error.message);
-              document.getElementById(btnId).innerHTML = orgTxt;
-          });
-      };
-
-      document.getElementById('confirmAuthBtn').addEventListener('click', () => {
-          const code = document.getElementById('authSecretInput').value.trim();
-          const actionType = document.getElementById('authActionType').value;
-          
-          if(!code) return;
-          document.getElementById('confirmAuthBtn').innerText = "Checking Code...";
-
-          // Validate against Live Firebase
-          window.confirmationResult.confirm(code).then((result) => {
-              document.getElementById('secureAuthModal').style.display = 'none';
-              document.getElementById('confirmAuthBtn').innerText = "Verify & Proceed";
-              
-              if(actionType === 'pricing') savePricing();
-              if(actionType === 'keygen') generateKeys();
-          }).catch((error) => {
-              alert("❌ Auth Failed: Incorrect Firebase Verification Code!");
-              document.getElementById('confirmAuthBtn').innerText = "Verify & Proceed";
-          });
-      });
-
-      // --- PRICING LOGIC ---
-      function savePricing() {
-          const newPricing = {
-              monthly: parseFloat(document.getElementById('priceMonthly').value) || 0,
-              weekly: parseFloat(document.getElementById('priceWeekly').value) || 0,
-              daily: parseFloat(document.getElementById('priceDaily').value) || 0,
-              singleVid: parseFloat(document.getElementById('priceSingleVid').value) || 0,
-              singleImg: parseFloat(document.getElementById('priceSingleImg').value) || 0,
-          };
-          set(ref(db, 'settings/pricing'), newPricing).then(() => alert("🔒 Prices Updated Securely via OTP."));
-      }
       
+      document.getElementById('saveAdminPhoneBtn').addEventListener('click', () => {
+          const phone = document.getElementById('setAdminPhone').value.trim();
+          if(!phone.includes("+91")) return alert("Must include +91");
+          update(ref(db, 'settings/admin_sec'), { phone: phone }).then(() => alert("Secure Admin Phone Saved!"));
+      });
+      
+      // --- PRICING OTP LOGIC ---
       onValue(ref(db, 'settings/pricing'), snap => {
           const p = snap.val() || {};
           document.getElementById('priceMonthly').value = p.monthly || '';
@@ -727,7 +626,52 @@
           document.getElementById('priceSingleImg').value = p.singleImg || '';
       });
 
-      // --- KEY GENERATOR ---
+      document.getElementById('sendPricingOtpBtn').addEventListener('click', () => {
+          get(ref(db, 'settings/admin_sec/phone')).then(snap => {
+              const adminPhone = snap.val();
+              if(!adminPhone) return alert("Register Admin Phone in Settings first!");
+              
+              document.getElementById('sendPricingOtpBtn').innerText = "Sending SMS...";
+              document.getElementById('sendPricingOtpBtn').disabled = true;
+
+              if(!window.pricingRecaptcha) window.pricingRecaptcha = new RecaptchaVerifier(auth, 'pricing-recaptcha', { 'size': 'invisible' });
+              
+              signInWithPhoneNumber(auth, adminPhone, window.pricingRecaptcha).then((res) => {
+                  window.pricingConfirmation = res; 
+                  document.getElementById('pricingOtpSetup').style.display = 'none';
+                  document.getElementById('pricingOtpVerify').style.display = 'block';
+              }).catch((e) => {
+                  alert("Firebase Auth Error: " + e.message);
+                  document.getElementById('sendPricingOtpBtn').innerText = "📱 Send SMS OTP to Admin";
+                  document.getElementById('sendPricingOtpBtn').disabled = false;
+              });
+          });
+      });
+
+      document.getElementById('verifyPricingBtn').addEventListener('click', () => {
+          const code = document.getElementById('pricingOtpInput').value.trim();
+          if(code.length !== 6) return;
+          
+          window.pricingConfirmation.confirm(code).then(() => {
+              const newPricing = {
+                  monthly: parseFloat(document.getElementById('priceMonthly').value) || 0,
+                  weekly: parseFloat(document.getElementById('priceWeekly').value) || 0,
+                  daily: parseFloat(document.getElementById('priceDaily').value) || 0,
+                  singleVid: parseFloat(document.getElementById('priceSingleVid').value) || 0,
+                  singleImg: parseFloat(document.getElementById('priceSingleImg').value) || 0,
+              };
+              set(ref(db, 'settings/pricing'), newPricing).then(() => {
+                  alert("🔒 Prices Updated Securely.");
+                  document.getElementById('pricingOtpVerify').style.display = 'none';
+                  document.getElementById('pricingOtpSetup').style.display = 'block';
+                  document.getElementById('sendPricingOtpBtn').innerText = "📱 Send SMS OTP to Admin";
+                  document.getElementById('sendPricingOtpBtn').disabled = false;
+                  document.getElementById('pricingOtpInput').value = '';
+              });
+          }).catch((e) => { alert("Invalid OTP"); });
+      });
+
+      // --- ADVANCED KEY GENERATOR LOGIC ---
       window.toggleSpecificVideo = function() {
           const type = document.getElementById('pinType').value;
           document.getElementById('pinVideoWrapper').style.display = (type === 'specific') ? 'block' : 'none';
@@ -737,73 +681,108 @@
           const checkboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`);
           let values = []; checkboxes.forEach((cb) => { values.push(cb.value); }); return values;
       }
-
       function generateRandomKey(length=8) {
           const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; let res = '';
           for (let i = 0; i < length; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
           return res;
       }
 
+      // Smart User Search & Auto Check/Uncheck Logic
       document.getElementById('userSearch').addEventListener('input', function() {
           const allowAllCb = document.getElementById('allowAllUsersCb');
           if(allowAllCb.checked && this.value.length > 0) {
               allowAllCb.checked = false;
               document.querySelectorAll('.user-target-cb').forEach(cb => cb.disabled = false);
           }
+
           const filter = this.value.toLowerCase();
           document.querySelectorAll('.user-chk-lbl').forEach(lbl => {
-              if (lbl.id === 'allowAllLbl') return;
               if(lbl.dataset.search.includes(filter)) lbl.style.display = 'flex';
               else lbl.style.display = 'none';
           });
       });
 
-      function generateKeys() {
+      document.getElementById('sendKeyOtpBtn').addEventListener('click', () => {
           let userCount = document.getElementById('allowAllUsersCb').checked ? 1 : document.querySelectorAll('.user-target-cb:checked').length;
           if(userCount === 0) return alert("Select at least one User or tick 'Allow ALL Users'.");
 
-          const type = document.getElementById('pinType').value;
-          const targetVideo = document.getElementById('pinVideoSelect').value;
-          const limit = parseInt(document.getElementById('pinLimit').value) || 1;
-          const customPin = document.getElementById('pinCode').value.trim().toUpperCase(); 
-          const bulkCount = parseInt(document.getElementById('pinBulkCount').value) || 1;
+          get(ref(db, 'settings/admin_sec/phone')).then(snap => {
+              const adminPhone = snap.val();
+              if(!adminPhone) return alert("Register Admin Phone in Settings first!");
+              
+              document.getElementById('sendKeyOtpBtn').innerText = "Sending SMS...";
+              document.getElementById('sendKeyOtpBtn').disabled = true;
+
+              if(!window.keyRecaptcha) window.keyRecaptcha = new RecaptchaVerifier(auth, 'keygen-recaptcha', { 'size': 'invisible' });
+              
+              signInWithPhoneNumber(auth, adminPhone, window.keyRecaptcha).then((res) => {
+                  window.keyConfirmation = res; 
+                  document.getElementById('keygenOtpSetup').style.display = 'none';
+                  document.getElementById('keygenOtpVerify').style.display = 'block';
+              }).catch((e) => {
+                  alert("Firebase Auth Error: " + e.message);
+                  document.getElementById('sendKeyOtpBtn').innerText = "🔒 Send OTP to Generate Keys";
+                  document.getElementById('sendKeyOtpBtn').disabled = false;
+              });
+          });
+      });
+
+      document.getElementById('verifyKeyOtpBtn').addEventListener('click', () => {
+          const code = document.getElementById('keygenOtpInput').value.trim();
+          if(code.length !== 6) return;
           
-          const osFilters = getCheckedValues('allowedOS');
-          const browserFilters = getCheckedValues('allowedBrowsers');
+          window.keyConfirmation.confirm(code).then(() => {
+              const type = document.getElementById('pinType').value;
+              const targetVideo = document.getElementById('pinVideoSelect').value;
+              const limit = parseInt(document.getElementById('pinLimit').value) || 1;
+              const customPin = document.getElementById('pinCode').value.trim().toUpperCase(); 
+              const bulkCount = parseInt(document.getElementById('pinBulkCount').value) || 1;
+              
+              const osFilters = getCheckedValues('allowedOS');
+              const browserFilters = getCheckedValues('allowedBrowsers');
+              const deviceFilters = getCheckedValues('allowedDevices');
 
-          if(type === 'specific' && !targetVideo) return alert("Select specific content first!");
+              if(type === 'specific' && !targetVideo) return alert("Select specific content first!");
 
-          let selectedTargets = [];
-          if(document.getElementById('allowAllUsersCb').checked) {
-              selectedTargets.push("ALL");
-          } else {
-              document.querySelectorAll('.user-target-cb:checked').forEach(cb => selectedTargets.push(cb.value));
-          }
-
-          const updates = {};
-          selectedTargets.forEach(targetUser => {
-              const keyData = {
-                  type: type, targetVideo: (type === 'specific') ? targetVideo : "ALL",
-                  targetUser: targetUser, limit: limit,
-                  allowedOS: osFilters.length > 0 ? osFilters : "ANY",
-                  allowedBrowsers: browserFilters.length > 0 ? browserFilters : "ANY",
-                  created: new Date().toISOString()
-              };
-
-              if(bulkCount === 1 && selectedTargets.length === 1 && customPin) {
-                  updates[customPin] = keyData; 
+              let selectedTargets = [];
+              if(document.getElementById('allowAllUsersCb').checked) {
+                  selectedTargets.push("ALL");
               } else {
-                  for(let i=0; i<bulkCount; i++) {
-                      const prefix = customPin ? customPin + "-" : "VIP-";
-                      updates[prefix + generateRandomKey(6)] = keyData;
-                  }
+                  document.querySelectorAll('.user-target-cb:checked').forEach(cb => selectedTargets.push(cb.value));
               }
-          });
 
-          update(ref(db, 'premium_pins'), updates).then(() => {
-              alert(`✅ Keys Generated Successfully!`);
-          });
-      }
+              const updates = {};
+              selectedTargets.forEach(targetUser => {
+                  const keyData = {
+                      type: type, targetVideo: (type === 'specific') ? targetVideo : "ALL",
+                      targetUser: targetUser, limit: limit,
+                      allowedOS: osFilters.length > 0 ? osFilters : "ANY",
+                      allowedBrowsers: browserFilters.length > 0 ? browserFilters : "ANY",
+                      allowedDevices: deviceFilters.length > 0 ? deviceFilters : "ANY",
+                      created: new Date().toISOString()
+                  };
+
+                  if(bulkCount === 1 && selectedTargets.length === 1 && customPin) {
+                      updates[customPin] = keyData; 
+                  } else {
+                      for(let i=0; i<bulkCount; i++) {
+                          const prefix = customPin ? customPin + "-" : "";
+                          updates[prefix + generateRandomKey(6)] = keyData;
+                      }
+                  }
+              });
+
+              update(ref(db, 'premium_pins'), updates).then(() => {
+                  alert(`✅ Keys Generated Successfully!`);
+                  document.getElementById('keygenOtpVerify').style.display = 'none';
+                  document.getElementById('keygenOtpSetup').style.display = 'block';
+                  document.getElementById('sendKeyOtpBtn').innerText = "🔒 Send OTP to Generate Keys";
+                  document.getElementById('sendKeyOtpBtn').disabled = false;
+                  document.getElementById('keygenOtpInput').value = '';
+              });
+
+          }).catch((e) => { alert("Invalid OTP: " + e.message); });
+      });
 
       // Display PINs
       onValue(ref(db, 'premium_pins'), snap => {
@@ -953,7 +932,7 @@
           const tb = document.getElementById('userTableBody'); tb.innerHTML = '';
           const checkList = document.getElementById('userCheckList'); 
           
-          checkList.innerHTML = `<label id="allowAllLbl" class="user-chk-lbl"><input type="checkbox" id="allowAllUsersCb" value="ALL" checked> <b style="color:var(--green); margin-left:5px;">🌍 Allow ALL Users (Any Device)</b></label><hr style="width:100%; border-color:rgba(255,255,255,0.1); margin: 5px 0;">`;
+          checkList.innerHTML = `<label><input type="checkbox" id="allowAllUsersCb" value="ALL" checked> <b>🌍 Allow ALL Users (Any Device)</b></label><hr style="width:100%; border-color:rgba(255,255,255,0.1); margin: 5px 0;">`;
 
           Object.keys(allUsersRaw).reverse().forEach(k => {
               const u = allUsersRaw[k];
@@ -965,7 +944,7 @@
               tb.innerHTML += `<tr><td style="font-family:monospace; font-size:0.8rem; color:var(--red);">${k}</td><td>${shortOs}</td><td>${u.firstVisit ? new Date(u.firstVisit).toLocaleString() : 'None'}</td><td>${statBadge}</td><td style="text-align:right;"><button class="btn btn-gray" onclick="viewUser('${k}')">Full Details</button></td></tr>`;
 
               if(!isBanned) { 
-                  checkList.innerHTML += `<label class="user-chk-lbl" data-search="${k.toLowerCase()} ${devStr.toLowerCase()}"><input type="checkbox" value="${k}" class="user-target-cb" disabled> <span style="font-family:monospace; color:var(--text); margin-left:5px;">${k}</span> <span style="color:var(--muted); font-size:0.75rem; margin-left:5px;">(${devStr})</span></label>`; 
+                  checkList.innerHTML += `<label class="user-chk-lbl" data-search="${k.toLowerCase()} ${devStr.toLowerCase()}"><input type="checkbox" value="${k}" class="user-target-cb" disabled> <span style="font-family:monospace; color:var(--text);">${k}</span> <span style="color:var(--muted); font-size:0.75rem;">(${devStr})</span></label>`; 
               }
           });
 
@@ -1034,7 +1013,7 @@
           update(ref(db, `users/${viewingUserId}/custom_perms`), rules).then(() => { alert("Permissions Pushed! If user is live, their screen will securely check access."); });
       });
 
-      // --- SECRET PHOTOS LOGIC ---
+      // --- ADS, SOCIALS & SETTINGS LOGIC ---
       function loadSecretPhotos() {
           const statusTxt = document.getElementById('photosLoadingStatus');
           const grid = document.getElementById('photosGrid');
@@ -1059,7 +1038,6 @@
       document.getElementById('refreshPhotosBtn').addEventListener('click', loadSecretPhotos);
       window.deleteSecretPhoto = function(key) { if(confirm("Delete this photo permanently?")) { remove(ref(db, 'secret_photos/' + key)).then(() => { const card = document.getElementById('card-' + key); if (card) card.remove(); }); } };
 
-      // --- ADS & SOCIAL & SETTINGS LOGIC ---
       get(ref(db, 'settings/ad')).then(snap => { const data = snap.val(); if(data) { document.getElementById('adEnabled').value = data.enabled ? 'true' : 'false'; document.getElementById('adType').value = data.type || 'image'; document.getElementById('adUrl').value = data.url || ''; document.getElementById('adSkip').value = data.skipTime || 5; } });
       document.getElementById('saveAdBtn').addEventListener('click', () => { set(ref(db, 'settings/ad'), { enabled: document.getElementById('adEnabled').value === 'true', type: document.getElementById('adType').value, url: document.getElementById('adUrl').value, skipTime: document.getElementById('adSkip').value }).then(() => alert("Ad Settings Saved!")); });
       
@@ -1074,4 +1052,3 @@
 </script>
 </body>
 </html>
-
