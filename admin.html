@@ -71,17 +71,13 @@
 </head>
 <body>
 
-<!-- Secure Login Overlay -->
+<!-- Secure Login Overlay (Email/Password) -->
 <div id="loginScreen">
-  <!-- Google Login Form -->
   <div class="login-box" id="loginFormBox">
     <div class="login-brand"><h1>▶ Secure Admin</h1></div>
-    <p style="font-size:0.85rem; color:var(--muted); text-align:center; margin-bottom:1.5rem;">Access restricted to authorized Master Admin Gmail account only.</p>
-    
-    <button id="googleLoginBtn" class="btn btn-full" style="background:#fff; color:#000; font-weight:700; border:1px solid #ccc;">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20px" height="20px" style="margin-right:8px;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-        Sign in with Google
-    </button>
+    <input class="inp" type="email" id="emailInput" placeholder="Admin Email" style="margin-bottom: 0.8rem;">
+    <input class="inp" type="password" id="passInput" placeholder="Password" onkeydown="if(event.key==='Enter') document.getElementById('loginBtn').click()">
+    <button id="loginBtn" class="btn btn-red btn-full">🔑 Authenticate</button>
   </div>
 
   <!-- New Device OTP Verification -->
@@ -386,14 +382,8 @@
       
       <div class="card-panel" style="margin-top:1.5rem; border-color:var(--red);">
           <h3 style="margin-bottom:1rem; color:var(--red);">🛡️ Admin Security Config</h3>
-          <p style="font-size:0.8rem; color:var(--muted); margin-bottom:1rem;">Your authorized Gmail controls main access. Phone number handles OTP security layers.</p>
+          <p style="font-size:0.8rem; color:var(--muted); margin-bottom:1rem;">Your authorized phone number handles OTP security layers for device logins, key generation, and pricing.</p>
           
-          <label>Authorized Admin Gmail</label>
-          <div style="display:flex; gap:10px; max-width: 400px; margin-bottom: 10px;">
-              <input class="inp" type="email" id="setAdminEmail" placeholder="admin@gmail.com" style="margin-bottom:0;">
-              <button class="btn btn-gray" id="saveAdminEmailBtn">💾 Save Gmail</button>
-          </div>
-
           <label>Secure Admin Phone Number (with +91)</label>
           <div style="display:flex; gap:10px; max-width: 400px;">
               <input class="inp" type="tel" id="setAdminPhone" placeholder="+91..." style="margin-bottom:0;">
@@ -500,7 +490,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
   import { getDatabase, ref, set, update, remove, onValue, get } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-  import { getAuth, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged, signOut, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCTfvrtZuHXk3RW91Dcwpbghhq--D6X2s8",
@@ -512,7 +502,6 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
   const auth = getAuth(app); 
-  const provider = new GoogleAuthProvider();
 
   let allVideosRaw = {};
   let allUsersRaw = {};
@@ -525,37 +514,36 @@
       return Math.abs(hash).toString(36).toUpperCase();
   }
 
-  // --- GOOGLE LOGIN (REDIRECT) ---
-  document.getElementById('googleLoginBtn').addEventListener('click', () => {
-    document.getElementById('googleLoginBtn').innerText = "Redirecting to Google...";
-    signInWithRedirect(auth, provider);
+  // --- LOGIN FLOW (EMAIL/PASSWORD RESTORED) ---
+  onAuthStateChanged(auth, (user) => {
+    if (user && isAdminVerified) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('adminDash').style.display = 'flex';
+      initAdmin();
+    } else if (!user) {
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('loginFormBox').style.display = 'block';
+      document.getElementById('deviceAuthBox').style.display = 'none';
+      document.getElementById('adminDash').style.display = 'none';
+      isAdminVerified = false;
+    }
   });
 
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-        if(isAdminVerified) {
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('adminDash').style.display = 'flex';
-            initAdmin();
-            return;
-        }
+  document.getElementById('loginBtn').addEventListener('click', () => {
+    const email = document.getElementById('emailInput').value;
+    const pass = document.getElementById('passInput').value;
+    if(!email || !pass) return alert("Enter credentials!");
 
+    document.getElementById('loginBtn').innerText = "Verifying...";
+    
+    signInWithEmailAndPassword(auth, email, pass).then(() => {
         const currentDevId = getAdminDeviceId();
+        
         get(ref(db, 'settings/admin_sec')).then((snap) => {
             const secData = snap.val() || {};
-            const savedEmail = secData.email;
             const savedDev = secData.device;
             
-            // 1. Gmail Strict Check
-            if (!savedEmail || savedEmail === "OPEN") {
-                update(ref(db, 'settings/admin_sec'), { email: user.email });
-            } else if (user.email !== savedEmail) {
-                alert(`SECURITY ALERT: ${user.email} is NOT Authorized as Admin!`);
-                signOut(auth);
-                return;
-            }
-
-            // 2. Device Strict Check
+            // Device Strict Check
             if (!savedDev || savedDev === "OPEN" || savedDev === currentDevId) {
                 if(!savedDev || savedDev === "OPEN") update(ref(db, 'settings/admin_sec'), { device: currentDevId });
                 isAdminVerified = true;
@@ -563,18 +551,16 @@
                 document.getElementById('adminDash').style.display = 'flex';
                 initAdmin();
             } else {
+                // Device changed -> Need OTP
                 document.getElementById('loginFormBox').style.display = 'none';
                 document.getElementById('deviceAuthBox').style.display = 'block';
                 sendDeviceAuthOtp(secData.phone);
             }
         });
-    } else {
-      document.getElementById('loginScreen').style.display = 'flex';
-      document.getElementById('loginFormBox').style.display = 'block';
-      document.getElementById('deviceAuthBox').style.display = 'none';
-      document.getElementById('adminDash').style.display = 'none';
-      isAdminVerified = false;
-    }
+    }).catch(() => { 
+        alert('Incorrect Email or Password'); 
+        document.getElementById('loginBtn').innerText = "🔑 Authenticate"; 
+    });
   });
 
   document.getElementById('logoutBtn').addEventListener('click', () => { signOut(auth).then(() => location.reload()); });
@@ -618,11 +604,10 @@
         });
       });
 
-      // Settings (Save Admin Email & Phone)
+      // Settings (Save Admin Phone for OTPs)
       onValue(ref(db, 'settings/admin_sec'), snap => {
           const sec = snap.val() || {};
           if(sec.phone) document.getElementById('setAdminPhone').value = sec.phone;
-          if(sec.email) document.getElementById('setAdminEmail').value = sec.email;
       }, {onlyOnce: true});
       
       document.getElementById('saveAdminPhoneBtn').addEventListener('click', () => {
@@ -631,12 +616,6 @@
           update(ref(db, 'settings/admin_sec'), { phone: phone }).then(() => alert("Secure Admin Phone Saved!"));
       });
       
-      document.getElementById('saveAdminEmailBtn').addEventListener('click', () => {
-          const email = document.getElementById('setAdminEmail').value.trim();
-          if(!email.includes("@")) return alert("Enter valid email");
-          update(ref(db, 'settings/admin_sec'), { email: email }).then(() => alert("Authorized Admin Email Saved!"));
-      });
-
       // --- PRICING OTP LOGIC ---
       onValue(ref(db, 'settings/pricing'), snap => {
           const p = snap.val() || {};
