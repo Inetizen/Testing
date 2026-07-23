@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hotfake-cache-v6'; // Version 6 forcibly clears old index-4-1 cache!
+const CACHE_NAME = 'hotfake-cache-v7'; // Version updated to v7 to sync perfectly with index.html & profile.html
 
 // Using relative paths for GitHub Pages subfolder compatibility
 const urlsToCache = [
@@ -49,6 +49,7 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Ignore external API, Firebase, and Worker requests
   if (
       event.request.url.includes('firebaseio.com') || 
       event.request.url.includes('ipapi.co') ||
@@ -58,6 +59,7 @@ self.addEventListener('fetch', event => {
      return;
   }
 
+  // Ignore video streaming range requests to prevent caching large video chunks
   if (event.request.headers.get('range')) {
       return;
   }
@@ -65,6 +67,7 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request)
       .then(response => {
+        // Cache successful basic responses
         if (response && response.status === 200 && response.type === 'basic') {
             const responseClone = response.clone();
             caches.open(CACHE_NAME).then(cache => {
@@ -74,6 +77,7 @@ self.addEventListener('fetch', event => {
         return response;
       })
       .catch(() => {
+        // Fallback to cache when offline
         return caches.match(event.request);
       })
   );
