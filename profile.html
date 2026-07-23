@@ -79,7 +79,7 @@
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
             Home
         </a>
-        <a href="special.html" class="nav-item">
+        <a href="index.html?filter=premium" class="nav-item">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
             Premium
         </a>
@@ -134,12 +134,13 @@
             dataList.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'card';
+                // Pass ID and Title correctly to the play function
                 card.innerHTML = `
                     <img src="${item.thumb || 'https://via.placeholder.com/300x169/181828/6E6E98?text=Saved'}" alt="Thumb"> 
                     <div class="card-body">
                         <h3>${item.title}</h3>
                         <div class="btn-group">
-                            <button class="btn btn-play" onclick="playVideo('${item.url}')">▶ Play</button>
+                            <button class="btn btn-play" onclick="playVideo('${item.url}', '${item.id}', '${esc(item.title)}')">▶ Play</button>
                             <button class="btn btn-del" onclick="deleteItem('${item.id}', '${item.url}')">Remove</button>
                         </div>
                     </div>
@@ -148,8 +149,13 @@
             });
         }
 
-        function playVideo(videoUrl) {
-            window.location.href = `index.html?offline_play=${encodeURIComponent(videoUrl)}`;
+        function esc(s) { 
+            return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); 
+        }
+
+        // Updated playVideo function to pass URL, ID, and Title to index.html
+        function playVideo(videoUrl, id, title) {
+            window.location.href = `index.html?offline_play=${encodeURIComponent(videoUrl)}&vid=${encodeURIComponent(id)}&title=${encodeURIComponent(title)}`;
         }
 
         async function deleteItem(itemId, videoUrl) {
@@ -158,7 +164,7 @@
                     let storageKey = currentMode === 'history' ? 'my_history' : 'my_downloads';
                     
                     if(currentMode === 'downloads') {
-                        const cache = await caches.open('hotfake-cache-v6');
+                        const cache = await caches.open('hotfake-cache-v7');
                         await cache.delete(videoUrl); 
                     }
                     
@@ -203,7 +209,7 @@
                 
                 if (!videoRes.ok) { throw new Error(`Server Blocked`); }
 
-                const cache = await caches.open('hotfake-cache-v6');
+                const cache = await caches.open('hotfake-cache-v7');
                 const contentLength = videoRes.headers.get('content-length');
                 
                 if (!contentLength || !videoRes.body) {
