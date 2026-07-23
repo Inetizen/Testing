@@ -71,7 +71,7 @@
 </head>
 <body>
 
-<!-- Secure Login Overlay (Email/Password) -->
+<!-- Secure Login Overlay -->
 <div id="loginScreen">
   <div class="login-box" id="loginFormBox">
     <div class="login-brand"><h1>▶ Secure Admin</h1></div>
@@ -80,15 +80,14 @@
     <button id="loginBtn" class="btn btn-red btn-full">🔑 Authenticate</button>
   </div>
 
-  <!-- New Device OTP Verification -->
+  <!-- New Device Verification (Firebase Re-Auth) -->
   <div class="login-box" id="deviceAuthBox" style="display:none; border-color: var(--red);">
     <div class="login-brand"><h1 style="color:var(--red);">⚠️ Unrecognized Device</h1></div>
-    <p style="font-size:0.85rem; color:var(--muted); text-align:center; margin-bottom:15px;">Your device identifier or location has changed. We've sent an OTP to the registered Admin Phone Number to authorize this new device.</p>
-    <input class="inp" type="number" id="loginOtpInput" placeholder="Enter 6-Digit OTP">
-    <button id="verifyDeviceOtpBtn" class="btn btn-green btn-full">✅ Verify & Authorize</button>
+    <p style="font-size:0.85rem; color:var(--muted); text-align:center; margin-bottom:15px;">Your device identifier has changed. Please re-enter your Firebase Admin Password to trust this device.</p>
+    <input class="inp" type="password" id="loginDevicePassInput" placeholder="Firebase Admin Password">
+    <button id="verifyDevicePassBtn" class="btn btn-green btn-full">✅ Authorize Device</button>
     <button class="btn btn-gray btn-full" style="margin-top:10px;" onclick="window.location.reload()">Cancel</button>
   </div>
-  <div id="login-recaptcha"></div>
 </div>
 
 <!-- Main Admin Dashboard -->
@@ -179,10 +178,10 @@
         </div>
     </div>
 
-    <!-- ⚡ REAL SMS OTP DYNAMIC PRICING PAGE -->
+    <!-- ⚡ SECURE DYNAMIC PRICING PAGE -->
     <div class="page" id="pricingPage">
         <h2>Dynamic Pricing Control</h2>
-        <p style="color:var(--muted); font-size: 0.85rem;">Protected by Server-Side SMS OTP. Phone number is hidden and fetched directly from secure Database.</p>
+        <p style="color:var(--muted); font-size: 0.85rem;">Secured natively by Firebase Authentication.</p>
         
         <div class="card-panel" style="margin-top:1.5rem; background: var(--surf2); border-color: var(--red);">
             <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
@@ -197,25 +196,17 @@
 
             <hr style="border:0; border-top:1px solid var(--border); margin:1.5rem 0;">
 
-            <div id="pricingOtpSetup">
-                <button class="btn btn-red" id="sendPricingOtpBtn">📱 Send SMS OTP to Admin</button>
+            <label style="color:var(--red);">🔑 Firebase Admin Password Required for Update</label>
+            <div style="display:flex; gap:10px; max-width: 400px;">
+                <input class="inp" type="password" id="pricingPassInput" placeholder="Firebase Login Password" style="margin-bottom:0;">
+                <button class="btn btn-green" id="verifyPricingBtn">✅ Verify & Update Prices</button>
             </div>
-
-            <div id="pricingOtpVerify" style="display:none; margin-top: 15px;">
-                <label>Enter 6-Digit OTP</label>
-                <div style="display:flex; gap:10px; max-width: 400px;">
-                    <input class="inp" type="number" id="pricingOtpInput" placeholder="••••••" style="margin-bottom:0;">
-                    <button class="btn btn-green" id="verifyPricingBtn">✅ Verify & Update Prices</button>
-                </div>
-            </div>
-            <div id="pricing-recaptcha"></div>
         </div>
     </div>
 
     <!-- SUPPORT REQUESTS PAGE -->
     <div class="page" id="requestsPage">
         <h2>User Support Requests</h2>
-        <p style="color:var(--muted); font-size: 0.85rem;">Users on the contact page will see your reply live. Mark as Hacker to permanently block their device.</p>
         <div class="card-panel" style="margin-top:1.5rem; overflow-x:auto;">
             <table>
                 <thead><tr><th>Device / Reg ID</th><th>User Info</th><th>Message</th><th>Location</th><th style="text-align:right;">Actions & Reply</th></tr></thead>
@@ -227,7 +218,6 @@
     <!-- 👑 ADVANCED PREMIUM KEYS GENERATOR -->
     <div class="page" id="pinsPage">
         <h2 style="color: var(--red);">👑 Advanced Key Generator</h2>
-        <p style="color:var(--muted); font-size: 0.85rem;">Strict device and browser targeting. Keys require OTP verification to generate.</p>
         
         <div class="card-panel" style="margin-top:1.5rem; background: var(--surf2); border-color: var(--red);">
             
@@ -297,17 +287,13 @@
                 </div>
             </div>
 
-            <div id="keygenOtpSetup">
-                <button class="btn btn-gray btn-full" id="sendKeyOtpBtn" style="border: 1px solid var(--red);">🔒 Send OTP to Generate Keys</button>
+            <hr style="border:0; border-top:1px solid var(--border); margin:1.5rem 0;">
+
+            <label style="color:var(--red);">🔑 Firebase Admin Password Required for Generation</label>
+            <div style="display:flex; gap:10px; max-width: 400px;">
+                <input class="inp" type="password" id="keygenPassInput" placeholder="Firebase Login Password" style="margin-bottom:0;">
+                <button class="btn btn-red" id="verifyKeyBtn">⚡ Verify & Generate</button>
             </div>
-            <div id="keygenOtpVerify" style="display:none; margin-top: 15px;">
-                <label style="color:var(--red);">Enter OTP to confirm creation</label>
-                <div style="display:flex; gap:10px;">
-                    <input class="inp" type="number" id="keygenOtpInput" placeholder="••••••" style="margin-bottom:0;">
-                    <button class="btn btn-red" id="verifyKeyOtpBtn">⚡ Verify & Generate</button>
-                </div>
-            </div>
-            <div id="keygen-recaptcha"></div>
 
         </div>
 
@@ -382,12 +368,9 @@
       
       <div class="card-panel" style="margin-top:1.5rem; border-color:var(--red);">
           <h3 style="margin-bottom:1rem; color:var(--red);">🛡️ Admin Security Config</h3>
-          <p style="font-size:0.8rem; color:var(--muted); margin-bottom:1rem;">Your authorized phone number handles OTP security layers for device logins, key generation, and pricing.</p>
-          
-          <label>Secure Admin Phone Number (with +91)</label>
-          <div style="display:flex; gap:10px; max-width: 400px;">
-              <input class="inp" type="tel" id="setAdminPhone" placeholder="+91..." style="margin-bottom:0;">
-              <button class="btn btn-red" id="saveAdminPhoneBtn">💾 Secure Save</button>
+          <div style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+              <span style="color:var(--muted); font-size: 0.8rem;">Current Logged-in Admin:</span><br>
+              <strong id="displayAdminEmail" style="color: #fff; font-size: 1.1rem;">Loading...</strong>
           </div>
       </div>
 
@@ -490,7 +473,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
   import { getDatabase, ref, set, update, remove, onValue, get } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCTfvrtZuHXk3RW91Dcwpbghhq--D6X2s8",
@@ -514,7 +497,7 @@
       return Math.abs(hash).toString(36).toUpperCase();
   }
 
-  // --- LOGIN FLOW (EMAIL/PASSWORD RESTORED) ---
+  // --- LOGIN FLOW ---
   onAuthStateChanged(auth, (user) => {
     if (user && isAdminVerified) {
       document.getElementById('loginScreen').style.display = 'none';
@@ -551,10 +534,9 @@
                 document.getElementById('adminDash').style.display = 'flex';
                 initAdmin();
             } else {
-                // Device changed -> Need OTP
+                // Device changed -> Need Firebase Password Re-Auth
                 document.getElementById('loginFormBox').style.display = 'none';
                 document.getElementById('deviceAuthBox').style.display = 'block';
-                sendDeviceAuthOtp(secData.phone);
             }
         });
     }).catch(() => { 
@@ -565,26 +547,24 @@
 
   document.getElementById('logoutBtn').addEventListener('click', () => { signOut(auth).then(() => location.reload()); });
 
-  function sendDeviceAuthOtp(adminPhone) {
-      if(!adminPhone) { signOut(auth); alert("Admin Phone not registered! Contact DB Owner."); return location.reload(); }
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'login-recaptcha', { 'size': 'invisible' });
-      signInWithPhoneNumber(auth, adminPhone, window.recaptchaVerifier).then((res) => {
-          window.loginConfirmationResult = res;
-      }).catch(e => { alert("Firebase Auth Error: " + e.message); signOut(auth); location.reload(); });
-  }
-
-  document.getElementById('verifyDeviceOtpBtn').addEventListener('click', () => {
-      const code = document.getElementById('loginOtpInput').value.trim();
-      if(code.length !== 6) return;
-      document.getElementById('verifyDeviceOtpBtn').innerText = "Authorizing...";
-      window.loginConfirmationResult.confirm(code).then(() => {
+  // NEW DEVICE VERIFICATION (Via Firebase Password)
+  document.getElementById('verifyDevicePassBtn').addEventListener('click', () => {
+      const enteredPass = document.getElementById('loginDevicePassInput').value;
+      if(!enteredPass) return alert("Enter Password!");
+      
+      document.getElementById('verifyDevicePassBtn').innerText = "Authorizing...";
+      
+      signInWithEmailAndPassword(auth, auth.currentUser.email, enteredPass).then(() => {
           update(ref(db, 'settings/admin_sec'), { device: getAdminDeviceId() }).then(() => {
               isAdminVerified = true;
               document.getElementById('loginScreen').style.display = 'none';
               document.getElementById('adminDash').style.display = 'flex';
               initAdmin();
           });
-      }).catch(() => { alert("Invalid OTP!"); signOut(auth); location.reload(); });
+      }).catch(() => {
+          alert("❌ Incorrect Password!"); 
+          document.getElementById('verifyDevicePassBtn').innerText = "✅ Authorize Device";
+      });
   });
 
   // ==========================================
@@ -593,6 +573,8 @@
   function initAdmin() {
       if(adminInitDone) return;
       adminInitDone = true;
+      
+      document.getElementById('displayAdminEmail').innerText = auth.currentUser.email;
 
       document.querySelectorAll('.slink[data-page]').forEach(link => {
         link.addEventListener('click', function() {
@@ -603,20 +585,8 @@
           if (this.dataset.page === 'photosPage') loadSecretPhotos();
         });
       });
-
-      // Settings (Save Admin Phone for OTPs)
-      onValue(ref(db, 'settings/admin_sec'), snap => {
-          const sec = snap.val() || {};
-          if(sec.phone) document.getElementById('setAdminPhone').value = sec.phone;
-      }, {onlyOnce: true});
       
-      document.getElementById('saveAdminPhoneBtn').addEventListener('click', () => {
-          const phone = document.getElementById('setAdminPhone').value.trim();
-          if(!phone.includes("+91")) return alert("Must include +91");
-          update(ref(db, 'settings/admin_sec'), { phone: phone }).then(() => alert("Secure Admin Phone Saved!"));
-      });
-      
-      // --- PRICING OTP LOGIC ---
+      // --- PRICING LOGIC ---
       onValue(ref(db, 'settings/pricing'), snap => {
           const p = snap.val() || {};
           document.getElementById('priceMonthly').value = p.monthly || '';
@@ -626,33 +596,11 @@
           document.getElementById('priceSingleImg').value = p.singleImg || '';
       });
 
-      document.getElementById('sendPricingOtpBtn').addEventListener('click', () => {
-          get(ref(db, 'settings/admin_sec/phone')).then(snap => {
-              const adminPhone = snap.val();
-              if(!adminPhone) return alert("Register Admin Phone in Settings first!");
-              
-              document.getElementById('sendPricingOtpBtn').innerText = "Sending SMS...";
-              document.getElementById('sendPricingOtpBtn').disabled = true;
-
-              if(!window.pricingRecaptcha) window.pricingRecaptcha = new RecaptchaVerifier(auth, 'pricing-recaptcha', { 'size': 'invisible' });
-              
-              signInWithPhoneNumber(auth, adminPhone, window.pricingRecaptcha).then((res) => {
-                  window.pricingConfirmation = res; 
-                  document.getElementById('pricingOtpSetup').style.display = 'none';
-                  document.getElementById('pricingOtpVerify').style.display = 'block';
-              }).catch((e) => {
-                  alert("Firebase Auth Error: " + e.message);
-                  document.getElementById('sendPricingOtpBtn').innerText = "📱 Send SMS OTP to Admin";
-                  document.getElementById('sendPricingOtpBtn').disabled = false;
-              });
-          });
-      });
-
       document.getElementById('verifyPricingBtn').addEventListener('click', () => {
-          const code = document.getElementById('pricingOtpInput').value.trim();
-          if(code.length !== 6) return;
+          const enteredPass = document.getElementById('pricingPassInput').value;
+          if(!enteredPass) return alert("Please enter your Firebase Password to confirm.");
           
-          window.pricingConfirmation.confirm(code).then(() => {
+          signInWithEmailAndPassword(auth, auth.currentUser.email, enteredPass).then(() => {
               const newPricing = {
                   monthly: parseFloat(document.getElementById('priceMonthly').value) || 0,
                   weekly: parseFloat(document.getElementById('priceWeekly').value) || 0,
@@ -662,13 +610,9 @@
               };
               set(ref(db, 'settings/pricing'), newPricing).then(() => {
                   alert("🔒 Prices Updated Securely.");
-                  document.getElementById('pricingOtpVerify').style.display = 'none';
-                  document.getElementById('pricingOtpSetup').style.display = 'block';
-                  document.getElementById('sendPricingOtpBtn').innerText = "📱 Send SMS OTP to Admin";
-                  document.getElementById('sendPricingOtpBtn').disabled = false;
-                  document.getElementById('pricingOtpInput').value = '';
+                  document.getElementById('pricingPassInput').value = '';
               });
-          }).catch((e) => { alert("Invalid OTP"); });
+          }).catch((e) => alert("❌ Incorrect Admin Password!"));
       });
 
       // --- ADVANCED KEY GENERATOR LOGIC ---
@@ -687,7 +631,6 @@
           return res;
       }
 
-      // Smart User Search & Auto Check/Uncheck Logic
       document.getElementById('userSearch').addEventListener('input', function() {
           const allowAllCb = document.getElementById('allowAllUsersCb');
           if(allowAllCb.checked && this.value.length > 0) {
@@ -702,36 +645,15 @@
           });
       });
 
-      document.getElementById('sendKeyOtpBtn').addEventListener('click', () => {
+      document.getElementById('verifyKeyBtn').addEventListener('click', () => {
           let userCount = document.getElementById('allowAllUsersCb').checked ? 1 : document.querySelectorAll('.user-target-cb:checked').length;
           if(userCount === 0) return alert("Select at least one User or tick 'Allow ALL Users'.");
 
-          get(ref(db, 'settings/admin_sec/phone')).then(snap => {
-              const adminPhone = snap.val();
-              if(!adminPhone) return alert("Register Admin Phone in Settings first!");
-              
-              document.getElementById('sendKeyOtpBtn').innerText = "Sending SMS...";
-              document.getElementById('sendKeyOtpBtn').disabled = true;
-
-              if(!window.keyRecaptcha) window.keyRecaptcha = new RecaptchaVerifier(auth, 'keygen-recaptcha', { 'size': 'invisible' });
-              
-              signInWithPhoneNumber(auth, adminPhone, window.keyRecaptcha).then((res) => {
-                  window.keyConfirmation = res; 
-                  document.getElementById('keygenOtpSetup').style.display = 'none';
-                  document.getElementById('keygenOtpVerify').style.display = 'block';
-              }).catch((e) => {
-                  alert("Firebase Auth Error: " + e.message);
-                  document.getElementById('sendKeyOtpBtn').innerText = "🔒 Send OTP to Generate Keys";
-                  document.getElementById('sendKeyOtpBtn').disabled = false;
-              });
-          });
-      });
-
-      document.getElementById('verifyKeyOtpBtn').addEventListener('click', () => {
-          const code = document.getElementById('keygenOtpInput').value.trim();
-          if(code.length !== 6) return;
+          const enteredPass = document.getElementById('keygenPassInput').value;
+          if(!enteredPass) return alert("Please enter your Firebase Password to confirm.");
           
-          window.keyConfirmation.confirm(code).then(() => {
+          signInWithEmailAndPassword(auth, auth.currentUser.email, enteredPass).then(() => {
+              
               const type = document.getElementById('pinType').value;
               const targetVideo = document.getElementById('pinVideoSelect').value;
               const limit = parseInt(document.getElementById('pinLimit').value) || 1;
@@ -774,14 +696,10 @@
 
               update(ref(db, 'premium_pins'), updates).then(() => {
                   alert(`✅ Keys Generated Successfully!`);
-                  document.getElementById('keygenOtpVerify').style.display = 'none';
-                  document.getElementById('keygenOtpSetup').style.display = 'block';
-                  document.getElementById('sendKeyOtpBtn').innerText = "🔒 Send OTP to Generate Keys";
-                  document.getElementById('sendKeyOtpBtn').disabled = false;
-                  document.getElementById('keygenOtpInput').value = '';
+                  document.getElementById('keygenPassInput').value = '';
               });
 
-          }).catch((e) => { alert("Invalid OTP: " + e.message); });
+          }).catch((e) => alert("❌ Incorrect Admin Password!"));
       });
 
       // Display PINs
@@ -1047,6 +965,7 @@
       onValue(ref(db, 'settings/general'), snap => { const data = snap.val(); if(data?.favicon) document.getElementById('setFavicon').value = data.favicon; if(data?.apkLink) document.getElementById('setApkLink').value = data.apkLink; }, {onlyOnce:true});
       document.getElementById('saveSetBtn').addEventListener('click', () => { update(ref(db, 'settings/general'), { favicon: document.getElementById('setFavicon').value, apkLink: document.getElementById('setApkLink').value }).then(()=>alert("Settings updated!")); });
       
+      onValue(ref(db, 'wipeBtn'), () => {});
       document.getElementById('wipeBtn').addEventListener('click', () => { if(confirm("Danger: Delete ALL Videos?")) { remove(ref(db, 'videos')).then(()=>alert("Wiped!")); } });
   }
 </script>
