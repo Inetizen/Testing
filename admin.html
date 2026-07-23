@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -54,6 +54,13 @@
     .modal-wrap { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:1000; align-items:center; justify-content:center; padding:1rem; backdrop-filter: blur(5px);}
     .modal-box { background:var(--surf); border:1px solid var(--red); border-radius:var(--radius); padding:2rem; width:100%; max-width:950px; max-height:90vh; overflow-y:auto;}
     
+    .action-row { padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
+    .action-row:last-child { border-bottom: none; }
+
+    .adv-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px; background:var(--surf2); padding:1.2rem; border-radius:10px; margin-bottom:1.5rem; font-size:0.85rem;}
+    .adv-grid span { color:var(--text); font-weight:500; display:block; margin-top:2px; font-size:0.95rem;}
+    .adv-grid b { color:var(--muted); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px;}
+
     .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; margin-top: 1.5rem; }
     .photo-card { background: var(--surf2); padding: 10px; border-radius: 12px; border: 1px solid var(--border); text-align: center; }
     .photo-card img { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.1); }
@@ -86,7 +93,7 @@
   <div id="login-recaptcha"></div>
 </div>
 
-<!-- Main Admin Dashboard (Hidden until Fully Verified) -->
+<!-- Main Admin Dashboard -->
 <div id="adminDash" style="display:none;">
   <aside class="sidebar">
     <div class="sidebar-brand"><span style="color:var(--red);">▶</span> HotFake</div>
@@ -140,13 +147,20 @@
                   <option value="true">Yes (Premium PIN Required)</option>
                 </select>
             </div>
+            <div style="flex:1; min-width:200px;">
+                <label>Is it 18+ Adult Content?</label>
+                <select class="inp" id="v18plus">
+                  <option value="false">No (Safe)</option>
+                  <option value="true">Yes (18+)</option>
+                </select>
+            </div>
         </div>
 
-        <label>Main Video Link (Leave blank if Image)</label>
+        <label>Main Video Link (Leave blank if adding parts or if it's an Image)</label>
         <input class="inp" type="url" id="vlink" placeholder="https://...">
 
-        <label style="margin-top:0.5rem;">Direct Download Link (Offline Backup)</label>
-        <input class="inp" type="url" id="vDownloadLink">
+        <label style="margin-top:0.5rem;">Direct Download Link (Backup for App Offline Download)</label>
+        <input class="inp" type="url" id="vDownloadLink" placeholder="https://drive.google.com/uc?export=download&id=...">
 
         <hr style="border:0; border-top:1px solid var(--border); margin:1.5rem 0;">
         <h4 style="margin-bottom:1rem;">Episodes / Extra Images</h4>
@@ -167,13 +181,12 @@
         </div>
     </div>
 
-    <!-- ⚡ REAL SMS OTP DYNAMIC PRICING PAGE (FIXED) -->
+    <!-- ⚡ REAL SMS OTP DYNAMIC PRICING PAGE -->
     <div class="page" id="pricingPage">
         <h2>Dynamic Pricing Control</h2>
         <p style="color:var(--muted); font-size: 0.85rem;">Protected by Server-Side SMS OTP. Phone number is hidden and fetched directly from secure Database.</p>
         
         <div class="card-panel" style="margin-top:1.5rem; background: var(--surf2); border-color: var(--red);">
-            
             <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
                 <div style="flex:1; min-width:150px;"><label>Monthly (₹)</label><input class="inp" type="number" id="priceMonthly"></div>
                 <div style="flex:1; min-width:150px;"><label>Weekly (₹)</label><input class="inp" type="number" id="priceWeekly"></div>
@@ -205,9 +218,10 @@
     <!-- SUPPORT REQUESTS PAGE -->
     <div class="page" id="requestsPage">
         <h2>User Support Requests</h2>
+        <p style="color:var(--muted); font-size: 0.85rem;">Users on the contact page will see your reply live. Mark as Hacker to permanently block their device.</p>
         <div class="card-panel" style="margin-top:1.5rem; overflow-x:auto;">
             <table>
-                <thead><tr><th>User Info</th><th>Message & Location</th><th style="text-align:right;">Actions & Reply</th></tr></thead>
+                <thead><tr><th>Device / Reg ID</th><th>User Info</th><th>Message</th><th>Location</th><th style="text-align:right;">Actions & Reply</th></tr></thead>
                 <tbody id="requestsTbody"></tbody>
             </table>
         </div>
@@ -332,6 +346,42 @@
       <div class="photo-grid" id="photosGrid"></div>
     </div>
 
+    <!-- AD SYSTEM -->
+    <div class="page" id="adsPage">
+      <h2>Video Ad System</h2>
+      <div class="card-panel" style="margin-top:1.5rem;">
+        <label>Enable Ads in Player?</label>
+        <select class="inp" id="adEnabled">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </select>
+        <label>Ad Media Type</label>
+        <select class="inp" id="adType">
+            <option value="image">Banner Image (JPG/PNG)</option>
+            <option value="video">Direct Video (MP4)</option>
+            <option value="youtube">YouTube Link</option>
+        </select>
+        <label>Ad Source URL</label>
+        <input class="inp" type="url" id="adUrl" placeholder="Link to ad media">
+        <label>Skip Allowed After (Seconds)</label>
+        <input class="inp" type="number" id="adSkip" value="5">
+        <button class="btn btn-red" id="saveAdBtn">💾 Save Ad Settings</button>
+      </div>
+    </div>
+
+    <!-- SOCIAL LINKS -->
+    <div class="page" id="socialPage">
+      <h2>Social Links</h2>
+      <div class="card-panel" style="margin-top:1.5rem;">
+        <label>Discord</label><input class="inp" type="url" id="socDiscord">
+        <label>Telegram</label><input class="inp" type="url" id="socTelegram">
+        <label>WhatsApp</label><input class="inp" type="url" id="socWhatsapp">
+        <label>Instagram</label><input class="inp" type="url" id="socInstagram">
+        <label>X (Twitter)</label><input class="inp" type="url" id="socX">
+        <button class="btn btn-red" id="saveSocBtn">💾 Save Links</button>
+      </div>
+    </div>
+
     <!-- SETTINGS & SECURITY -->
     <div class="page" id="settingsPage">
       <h2>Settings & Security</h2>
@@ -349,12 +399,119 @@
 
       <div class="card-panel">
           <h3 style="margin-bottom:1rem;">Brand Setup</h3>
-          <label>App APK Download Link</label>
+          <label>Website Favicon URL</label>
+          <input class="inp" type="url" id="setFavicon">
+          <label style="margin-top:1rem;">App APK Download Link</label>
           <input class="inp" type="url" id="setApkLink" placeholder="https://link-to-your-app.apk">
           <button class="btn btn-gray" id="saveSetBtn" style="margin-top:1rem;">💾 Save Configurations</button>
       </div>
+
+      <div class="card-panel">
+          <h3 style="color:var(--red);">⚠️ Danger Zone</h3>
+          <p style="color:var(--muted); font-size:.88rem; margin-bottom:1rem;">Firebase cloud se saare videos permanently delete ho jayenge.</p>
+          <button class="btn btn-danger" id="wipeBtn">🗑️ Delete All Videos</button>
+      </div>
     </div>
 
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div id="editModal" class="modal-wrap">
+  <div class="modal-box">
+    <h3 style="margin-bottom:1rem;">✏️ Edit Content</h3>
+    <input type="hidden" id="editId">
+    <label>Title</label><input class="inp" type="text" id="editTitle">
+    <label>Thumbnail / Main Image URL</label><input class="inp" type="url" id="editImg">
+    <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+        <div style="flex:1; min-width:150px;">
+            <label>Category Type</label>
+            <select class="inp" id="editType">
+                <option value="external">External Video</option>
+                <option value="embed">Movie Mode</option>
+                <option value="image">Premium Image / Gallery</option>
+            </select>
+        </div>
+        <div style="flex:1; min-width:150px;">
+            <label>Premium Locked? 👑</label><select class="inp" id="editPremium" style="border-color:var(--red);"><option value="false">No (Free)</option><option value="true">Yes (Premium)</option></select>
+        </div>
+        <div style="flex:1; min-width:150px;">
+            <label>18+ Content?</label><select class="inp" id="edit18plus"><option value="false">No</option><option value="true">Yes</option></select>
+        </div>
+    </div>
+    <label>Main Video URL (Leave blank if Image)</label><input class="inp" type="url" id="editLink">
+    
+    <label style="margin-top:0.5rem;">Direct Download Link</label>
+    <input class="inp" type="url" id="editDownloadLink">
+
+    <hr style="border:0; border-top:1px solid var(--border); margin:1.5rem 0;">
+    <h4 style="margin-bottom:1rem;">Edit Episodes / Images</h4>
+    <div id="editPartsContainer"></div>
+    <button class="btn btn-gray" id="editAddPartBtn" style="margin-bottom:1.5rem; font-size:0.8rem;">+ Add Episode/Image</button>
+    <div style="display:flex; gap:1rem;">
+      <button class="btn btn-red" id="saveEditBtn" style="flex:1;">Update Content</button>
+      <button class="btn btn-gray" onclick="document.getElementById('editModal').style.display='none'" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- USER PROFILE MODAL -->
+<div id="userModal" class="modal-wrap">
+  <div class="modal-box">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <h3 id="umTitle" style="color:var(--red);">User Profile</h3>
+        <button id="banToggleBtn" class="btn btn-red"></button>
+    </div>
+    
+    <div class="adv-grid">
+        <div><b>Device Type</b><span id="umType">None</span></div>
+        <div><b>Operating System</b><span id="umOS">None</span></div>
+        <div><b>Browser Info</b><span id="umBrowser">None</span></div>
+        <div><b>Network / ISP</b><span id="umISP">None</span></div>
+        <div><b>Current Location</b><span id="umLocation">None</span></div>
+        <div><b>IP Address</b><span id="umIp">None</span></div>
+        <div><b>Graphics / GPU</b><span id="umGPU" style="font-size:0.8rem;">None</span></div>
+        <div><b>RAM & CPU</b><span id="umHardware">None</span></div>
+        <div><b>Screen & Touch</b><span id="umScreen">None</span></div>
+        <div><b>Timezone & Lang</b><span id="umTz">None</span></div>
+        <div><b>First Visit</b><span id="umFirst">None</span></div>
+        <div><b>Last Active</b><span id="umLast">None</span></div>
+    </div>
+
+    <div style="background:var(--surf3); border:1px solid var(--red); padding:1rem; border-radius:10px; margin-bottom:1.5rem;">
+        <h4 style="margin-bottom:0.5rem; color:#fff;">📡 Live Permission Force (Push to Device)</h4>
+        <p style="font-size:0.8rem; color:var(--muted); margin-bottom:10px;">Select permissions and click Push. User will be silently checked and prompted if not granted.</p>
+        <div style="display:flex; gap:1.5rem; align-items:center; flex-wrap:wrap;">
+            <label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" id="pushCam"> Camera Access</label>
+            <label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" id="pushLoc"> GPS Location</label>
+            <label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" id="pushStore"> Local Storage</label>
+            <button class="btn btn-red" id="pushPermBtn" style="padding:0.4rem 1rem;">Push Rules Now</button>
+        </div>
+    </div>
+
+    <div style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1.5rem;">
+        <div style="flex:1; min-width:250px;">
+            <h4 style="margin-bottom:0.5rem; color:var(--red);">🔴 Live Action Logs</h4>
+            <div style="background:var(--surf2); border:1px solid var(--border); border-radius:8px; max-height:200px; overflow-y:auto;" id="umActionsList"></div>
+        </div>
+        
+        <div style="flex:1; min-width:250px;">
+            <h4 style="margin-bottom:0.5rem; color:#2DC653;">📍 Location & GPS History</h4>
+            <div style="background:var(--surf2); border:1px solid var(--border); border-radius:8px; max-height:200px; overflow-y:auto; padding:5px;" id="umLocationHistory"></div>
+        </div>
+
+        <div style="flex:1; min-width:250px;">
+            <h4 style="margin-bottom:0.5rem;">🎬 Watch History</h4>
+            <div style="background:var(--surf2); border:1px solid var(--border); border-radius:8px; max-height:200px; overflow-y:auto;">
+                <table style="margin-top:0;">
+                    <thead><tr><th>Show Title</th><th>Plays</th><th>Time(s)</th></tr></thead>
+                    <tbody id="umHistory"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <button class="btn btn-gray btn-full" onclick="document.getElementById('userModal').style.display='none'">Close Dashboard</button>
   </div>
 </div>
 
@@ -483,6 +640,7 @@
           this.classList.add('active');
           document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
           document.getElementById(this.dataset.page).classList.add('active');
+          if (this.dataset.page === 'photosPage') loadSecretPhotos();
         });
       });
 
@@ -673,37 +831,282 @@
       });
       window.deletePin = (pin) => { if(confirm("Revoke PIN?")) remove(ref(db, `premium_pins/${pin}`)); };
 
+      // --- ADD/EDIT VIDEO LOGIC ---
+      function addPartRow(containerId, title='', url='', image='', dlUrl='') {
+          const div = document.createElement('div'); 
+          div.style.cssText = "display:flex; flex-direction:column; gap:8px; background:var(--surf2); padding:12px; border-radius:8px; border:1px solid var(--border); margin-bottom:12px;";
+          div.innerHTML = `
+            <div style="display:flex; gap:10px; width:100%; align-items:center;">
+                <input type="text" class="inp part-title" placeholder="Episode / Image Title" value="${title}" style="flex:1; margin:0;">
+                <button class="btn btn-gray" onclick="this.parentElement.parentElement.remove()" style="padding:0.6rem 1rem;">X</button>
+            </div>
+            <div style="display:flex; gap:10px; width:100%;">
+                <input type="url" class="inp part-url" placeholder="Video / Image Link" value="${url}" style="flex:1; margin:0;">
+                <input type="url" class="inp part-image" placeholder="Thumbnail URL (Optional)" value="${image}" style="flex:1; margin:0;">
+            </div>
+            <input type="url" class="inp part-download" placeholder="Direct Download Link (Backup)" value="${dlUrl}" style="width:100%; margin:0;">
+          `;
+          document.getElementById(containerId).appendChild(div);
+      }
+      document.getElementById('addPartBtn').addEventListener('click', () => addPartRow('partsContainer'));
+      document.getElementById('editAddPartBtn').addEventListener('click', () => addPartRow('editPartsContainer'));
 
-      // --- POPULATE DROPDOWNS & USERS ---
-      onValue(ref(db, 'videos'), snap => {
-          const data = snap.val() || {};
-          const tb = document.getElementById('vlistTbody'); tb.innerHTML = '';
-          const pinVidSelect = document.getElementById('pinVideoSelect');
-          pinVidSelect.innerHTML = '';
-          
-          Object.keys(data).reverse().forEach(k => {
-              const v = data[k];
-              tb.innerHTML += `<tr><td>${v.title}</td><td>${v.type}</td><td>${v.isPremium==='true'?'👑 Premium':'Free'}</td>
-                  <td style="text-align:right;"><button class="btn btn-red" onclick="remove(ref(db, 'videos/${k}'))">🗑️</button></td></tr>`;
-              if(v.isPremium === 'true') { pinVidSelect.innerHTML += `<option value="${k}">${v.title}</option>`; }
+      document.getElementById('saveVidBtn').addEventListener('click', () => {
+          let parts = [];
+          document.querySelectorAll('#partsContainer > div').forEach(row => {
+              let t = row.querySelector('.part-title').value; let u = row.querySelector('.part-url').value; let i = row.querySelector('.part-image').value; let d = row.querySelector('.part-download').value;
+              if(t && u) parts.push({title: t, url: u, image: i, downloadUrl: d});
+          });
+          const data = {
+              title: document.getElementById('vtitle').value, imageUrl: document.getElementById('vimage').value,
+              videoUrl: document.getElementById('vlink').value || (parts.length > 0 ? parts[0].url : ''),
+              backupLink: document.getElementById('vDownloadLink').value,
+              type: document.getElementById('vtype').value, 
+              isPremium: document.getElementById('vPremium').value, 
+              is18Plus: document.getElementById('v18plus').value,
+              parts: parts, addedDate: new Date().toISOString()
+          };
+          if(!data.title || !data.imageUrl) return alert("Title and Image required!");
+          set(ref(db, 'videos/' + Date.now().toString(36)), data).then(() => {
+              alert("Content Added!"); 
+              document.getElementById('vtitle').value = ''; document.getElementById('vimage').value = '';
+              document.getElementById('vlink').value = ''; document.getElementById('vDownloadLink').value = ''; document.getElementById('partsContainer').innerHTML = '';
           });
       });
 
-      onValue(ref(db, 'users'), snap => {
+      onValue(ref(db, 'videos'), snap => {
+          allVideosRaw = snap.val() || {};
+          const tb = document.getElementById('vlistTbody'); tb.innerHTML = '';
+          const pinVidSelect = document.getElementById('pinVideoSelect'); pinVidSelect.innerHTML = '';
+          
+          Object.keys(allVideosRaw).reverse().forEach(k => {
+              const v = allVideosRaw[k];
+              const accBadge = v.isPremium === 'true' ? '<span class="badge-banned" style="background:var(--red); color:#fff;">👑 Premium</span>' : '<span class="badge-active">🟢 Free</span>';
+              
+              tb.innerHTML += `<tr>
+                  <td>${v.title}</td><td>${v.type}</td><td>${accBadge}</td>
+                  <td style="text-align:right;">
+                      <button class="btn btn-gray" style="padding:0.4rem 0.8rem;" onclick="openEdit('${k}')">✏️ Edit</button>
+                      <button class="btn btn-red" style="padding:0.4rem 0.8rem;" onclick="deleteVid('${k}')">🗑️</button>
+                  </td>
+              </tr>`;
+
+              if(v.isPremium === 'true') { pinVidSelect.innerHTML += `<option value="${k}">${v.title}</option>`; }
+          });
+          if(pinVidSelect.innerHTML === '') pinVidSelect.innerHTML = '<option value="">No Premium Content Found</option>';
+      });
+      window.deleteVid = (id) => { if(confirm("Delete content?")) remove(ref(db, 'videos/'+id)); };
+
+      window.openEdit = (id) => {
+          const v = allVideosRaw[id];
+          document.getElementById('editId').value = id; document.getElementById('editTitle').value = v.title;
+          document.getElementById('editImg').value = v.imageUrl; document.getElementById('editLink').value = v.videoUrl;
+          document.getElementById('editDownloadLink').value = v.backupLink || '';
+          document.getElementById('editType').value = v.type || 'external'; 
+          document.getElementById('editPremium').value = v.isPremium || 'false'; 
+          document.getElementById('edit18plus').value = v.is18Plus || 'false';
+          
+          const epContainer = document.getElementById('editPartsContainer'); epContainer.innerHTML = '';
+          if(v.parts) { v.parts.forEach(p => addPartRow('editPartsContainer', p.title, p.url, p.image, p.downloadUrl || '')); }
+          document.getElementById('editModal').style.display = 'flex';
+      };
+
+      document.getElementById('saveEditBtn').addEventListener('click', () => {
+          const id = document.getElementById('editId').value;
+          let parts = [];
+          document.querySelectorAll('#editPartsContainer > div').forEach(row => {
+              let t = row.querySelector('.part-title').value; let u = row.querySelector('.part-url').value; let i = row.querySelector('.part-image').value; let d = row.querySelector('.part-download').value;
+              if(t && u) parts.push({title: t, url: u, image: i, downloadUrl: d});
+          });
+          update(ref(db, 'videos/' + id), {
+              title: document.getElementById('editTitle').value, imageUrl: document.getElementById('editImg').value,
+              videoUrl: document.getElementById('editLink').value || (parts.length > 0 ? parts[0].url : ''),
+              backupLink: document.getElementById('editDownloadLink').value,
+              type: document.getElementById('editType').value, 
+              isPremium: document.getElementById('editPremium').value, 
+              is18Plus: document.getElementById('edit18plus').value,
+              parts: parts
+          }).then(() => { alert("Content Updated!"); document.getElementById('editModal').style.display = 'none'; });
+      });
+
+      // --- SUPPORT REQUESTS LOGIC ---
+      onValue(ref(db, 'support_requests'), snap => {
           const data = snap.val() || {};
+          const tb = document.getElementById('requestsTbody'); tb.innerHTML = '';
+          Object.keys(data).reverse().forEach(k => {
+              const req = data[k];
+              
+              let statusBadge = '<span style="color:#f0ad4e;">⏳ Pending</span>';
+              if(req.status === 'replied') statusBadge = '<span style="color:var(--green);">✅ Replied</span>';
+              if(req.status === 'hacker_ban') statusBadge = '<span style="color:red; font-weight:bold;">☠️ Hacker</span>';
+
+              tb.innerHTML += `<tr>
+                  <td>
+                      <span style="font-size:0.75rem; color:var(--red); font-family:monospace;">ID: ${req.regId}</span><br>
+                      <span style="font-size:0.8rem;"><b>Name:</b> ${req.name}<br><b>Contact:</b> ${req.contactInfo}</span><br>
+                      ${statusBadge}
+                  </td>
+                  <td>
+                      <div style="font-size:0.85rem; margin-bottom:5px;">${req.message}</div>
+                      <div style="font-size:0.75rem; color:var(--muted);"><a href="https://www.google.com/maps?q=${req.lat},${req.lon}" target="_blank" style="color:var(--green); text-decoration:underline;">📍 Location</a><br>OS: ${req.os}</div>
+                  </td>
+                  <td style="text-align:right; min-width: 250px;">
+                      ${req.status !== 'hacker_ban' ? `
+                      <input type="text" id="replyMsg_${k}" placeholder="Custom Admin Reply..." class="inp" style="width:100%; padding:8px; margin-bottom:8px; font-size:0.8rem;">
+                      <div style="display:flex; gap:5px; justify-content:flex-end;">
+                          <button class="btn btn-green" style="padding:0.4rem 0.8rem;" onclick="sendReply('${k}')">Reply</button>
+                          <button class="btn btn-danger" style="padding:0.4rem 0.8rem;" onclick="markHacker('${k}', '${req.regId}')">☠️ Ban</button>
+                      </div>` : `<button class="btn btn-gray" onclick="deleteRequest('${k}')">Remove Log</button>`}
+                  </td>
+              </tr>`;
+          });
+      });
+
+      window.sendReply = function(id) {
+          const msg = document.getElementById(`replyMsg_${id}`).value.trim();
+          if(!msg) return alert("Please type a reply message first.");
+          update(ref(db, `support_requests/${id}`), { status: 'replied', adminMessage: msg }).then(() => {
+              alert("Reply sent to user!");
+          });
+      };
+
+      window.markHacker = function(reqId, userId) {
+          if(confirm("DANGER: Are you sure you want to PERMANENTLY ban this user for Hacking/Bypassing? They will never be able to access the platform again.")) {
+              update(ref(db, `support_requests/${reqId}`), { status: 'hacker_ban', adminMessage: 'Banned for illegal activities.' });
+              update(ref(db, `users/${userId}`), { banned: true, banReason: 'hack' });
+              alert("User marked as Hacker and permanently banned ☠️");
+          }
+      };
+
+      window.deleteRequest = function(id) {
+          if(confirm("Remove this request log?")) remove(ref(db, `support_requests/${id}`));
+      };
+
+      // --- USERS TRACKING LOGIC ---
+      onValue(ref(db, 'users'), snap => {
+          allUsersRaw = snap.val() || {};
           const tb = document.getElementById('userTableBody'); tb.innerHTML = '';
           const dl = document.getElementById('userListOptions'); dl.innerHTML = '';
 
-          Object.keys(data).reverse().forEach(k => {
-              const u = data[k];
-              const devStr = u.device ? `${u.device.os} - ${u.device.browser}` : 'Unknown';
+          Object.keys(allUsersRaw).reverse().forEach(k => {
+              const u = allUsersRaw[k];
+              const isBanned = u.banned; const isHacker = u.banReason === 'hack'; const isLive = u.status === 'Live';
               
-              tb.innerHTML += `<tr><td style="font-family:monospace; font-size:0.8rem;">${k}</td><td>${devStr}</td><td>${u.firstVisit?new Date(u.firstVisit).toLocaleString():''}</td><td>${u.banned?'🚫 Banned':'🟢 Live'}</td><td style="text-align:right;"><button class="btn btn-danger" onclick="update(ref(db, 'users/${k}'), {banned: !${u.banned}})">Ban Toggle</button></td></tr>`;
+              let statBadge = '';
+              if(isHacker) statBadge = '<span class="badge-banned" style="background:#000; color:#ff4d4d; border:1px solid #ff4d4d;">☠️ HACKER</span>';
+              else if(isBanned) statBadge = '<span class="badge-banned">🚫 Banned</span>';
+              else if(isLive) statBadge = '<span class="badge-active" style="background:#2DC653;color:#fff;">🟢 Live</span>';
+              else statBadge = '<span class="badge-banned" style="background:var(--surf3);color:var(--muted);">🔴 Offline</span>';
+
+              const shortOs = u.device?.os || 'Unknown';
               
-              if(!u.banned) { dl.innerHTML += `<option value="${k}">${devStr}</option>`; }
+              tb.innerHTML += `<tr>
+                  <td style="font-family:monospace; font-size:0.8rem; color:var(--red);">${k}</td>
+                  <td>${shortOs}</td>
+                  <td>${u.firstVisit ? new Date(u.firstVisit).toLocaleString() : 'None'}</td>
+                  <td>${statBadge}</td>
+                  <td style="text-align:right;"><button class="btn btn-gray" onclick="viewUser('${k}')">Full Details</button></td>
+              </tr>`;
+
+              if(!isBanned) { dl.innerHTML += `<option value="${k}">${devStr}</option>`; }
           });
       });
+
+      let viewingUserId = null;
+      window.viewUser = (id) => {
+          viewingUserId = id; const u = allUsersRaw[id];
+          const d = u.device || {}; const n = u.network || {};
+
+          document.getElementById('umTitle').innerText = id;
+          document.getElementById('umType').innerText = d.type || 'None'; document.getElementById('umOS').innerText = d.os || 'None';
+          document.getElementById('umBrowser').innerText = (d.browser || 'None') + (d.cookieEnabled ? ' (Cookies: Yes)' : '');
+          document.getElementById('umISP').innerText = n.org || 'None'; document.getElementById('umLocation').innerText = `${n.city || ''}, ${n.region || 'None'}`;
+          document.getElementById('umIp').innerText = n.ip || 'None'; document.getElementById('umGPU').innerText = d.gpu || 'None';
+          document.getElementById('umHardware').innerText = `RAM: ${d.ram || '?'} | CPU: ${d.cores || '?'}`;
+          document.getElementById('umScreen').innerText = `${d.screen || '?'} | Touch: ${d.touch || 'No'}`;
+          document.getElementById('umTz').innerText = `${d.tz || '?'} | ${d.lang || '?'}`;
+          document.getElementById('umFirst').innerText = u.firstVisit ? new Date(u.firstVisit).toLocaleString() : 'None';
+          document.getElementById('umLast').innerText = u.lastActive ? new Date(u.lastActive).toLocaleString() : 'None';
+
+          const banBtn = document.getElementById('banToggleBtn');
+          banBtn.innerText = u.banned ? "Unban Device" : "Ban Device";
+          banBtn.style.background = u.banned ? "var(--green)" : "var(--red)";
+          banBtn.onclick = () => { update(ref(db, 'users/'+id), {banned: !u.banned}); document.getElementById('userModal').style.display='none'; };
+
+          get(ref(db, `users/${id}/custom_perms`)).then(snap => {
+              const perms = snap.val() || {};
+              document.getElementById('pushCam').checked = perms.camera || false;
+              document.getElementById('pushLoc').checked = perms.location || false;
+              document.getElementById('pushStore').checked = perms.storage || false;
+          });
+
+          const actionBox = document.getElementById('umActionsList'); 
+          if(u.actions) {
+              const acts = Object.values(u.actions).sort((a,b) => new Date(b.time) - new Date(a.time)).slice(0, 100);
+              let actsHtml = ''; acts.forEach(a => { actsHtml += `<div class="action-row"><span style="color:var(--text);">${a.action}</span><span style="color:var(--muted);">${new Date(a.time).toLocaleString()}</span></div>`; });
+              actionBox.innerHTML = actsHtml;
+          } else { actionBox.innerHTML = '<div class="action-row" style="color:var(--muted); justify-content:center;">No live actions recorded yet.</div>'; }
+
+          const locBox = document.getElementById('umLocationHistory'); let allLocs = [];
+          if (u.locationHistory) { Object.values(u.locationHistory).forEach(loc => { allLocs.push({ type: 'Network (IP)', text: `${loc.city}, ${loc.region} (IP: ${loc.ip})`, time: loc.time }); }); }
+          if (u.gpsHistory) { Object.values(u.gpsHistory).forEach(gps => { allLocs.push({ type: 'Exact GPS', text: `Accurate to ${gps.accuracy} <br> <a href="https://www.google.com/maps?q=${gps.lat},${gps.lon}" target="_blank" style="color:var(--green); text-decoration:underline; font-size: 0.8rem;">📍 Open Maps</a>`, time: gps.time }); }); }
+          if(allLocs.length > 0) {
+              allLocs.sort((a,b) => new Date(b.time) - new Date(a.time)).slice(0, 50);
+              let locsHtml = ''; allLocs.forEach(l => { locsHtml += `<div class="action-row" style="flex-direction:column; align-items:flex-start;"><div style="width:100%; display:flex; justify-content:space-between; margin-bottom:3px;"><span style="color:var(--text); font-weight:600;">${l.type}</span><span style="color:var(--muted); font-size:0.75rem;">${new Date(l.time).toLocaleString()}</span></div><span style="color:var(--muted); font-size:0.8rem;">${l.text}</span></div>`; });
+              locBox.innerHTML = locsHtml;
+          } else { locBox.innerHTML = '<div class="action-row" style="color:var(--muted); justify-content:center;">No location history available.</div>'; }
+
+          const htb = document.getElementById('umHistory'); 
+          if(u.history) {
+              let histHtml = ''; Object.values(u.history).forEach(h => { histHtml += `<tr><td>${h.title}</td><td>${h.plays}</td><td>${h.totalDuration}s</td></tr>`; }); htb.innerHTML = histHtml;
+          } else { htb.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--muted);">No history yet.</td></tr>'; }
+
+          document.getElementById('userModal').style.display = 'flex';
+      };
+
+      document.getElementById('pushPermBtn').addEventListener('click', () => {
+          if(!viewingUserId) return;
+          const rules = { camera: document.getElementById('pushCam').checked, location: document.getElementById('pushLoc').checked, storage: document.getElementById('pushStore').checked };
+          update(ref(db, `users/${viewingUserId}/custom_perms`), rules).then(() => { alert("Permissions Pushed! If user is live, their screen will securely check access."); });
+      });
+
+      // --- ADS, SOCIALS & SETTINGS LOGIC ---
+      function loadSecretPhotos() {
+          const statusTxt = document.getElementById('photosLoadingStatus');
+          const grid = document.getElementById('photosGrid');
+          statusTxt.innerText = "Loading photos from database...";
+          grid.innerHTML = ''; 
+          get(ref(db, 'secret_photos')).then((snap) => {
+              if (!snap.exists()) { statusTxt.innerText = "No new photos found."; return; }
+              const data = snap.val(); const keys = Object.keys(data).reverse(); 
+              statusTxt.innerText = `${keys.length} Photos found.`;
+              keys.forEach(key => {
+                  const photoData = data[key]; const url = photoData.imageBase64; const timeStr = new Date(photoData.time).toLocaleString(); const devId = photoData.deviceId || 'Unknown';
+                  grid.innerHTML += `
+                      <div class="photo-card" id="card-${key}">
+                          <a href="${url}" target="_blank"><img src="${url}" loading="lazy"></a>
+                          <p title="${devId}">User ID: ${devId.substring(0,6)}...</p>
+                          <p style="font-size:0.65rem; color:var(--muted);">${timeStr}</p>
+                          <button class="btn btn-danger" style="padding:0.4rem; font-size:0.75rem; width:100%; margin-top:5px;" onclick="deleteSecretPhoto('${key}')">🗑️ Delete</button>
+                      </div>`;
+              });
+          }).catch((error) => { statusTxt.innerText = "Error loading photos!"; });
+      }
+      document.getElementById('refreshPhotosBtn').addEventListener('click', loadSecretPhotos);
+      window.deleteSecretPhoto = function(key) { if(confirm("Delete this photo permanently?")) { remove(ref(db, 'secret_photos/' + key)).then(() => { const card = document.getElementById('card-' + key); if (card) card.remove(); }); } };
+
+      get(ref(db, 'settings/ad')).then(snap => { const data = snap.val(); if(data) { document.getElementById('adEnabled').value = data.enabled ? 'true' : 'false'; document.getElementById('adType').value = data.type || 'image'; document.getElementById('adUrl').value = data.url || ''; document.getElementById('adSkip').value = data.skipTime || 5; } });
+      document.getElementById('saveAdBtn').addEventListener('click', () => { set(ref(db, 'settings/ad'), { enabled: document.getElementById('adEnabled').value === 'true', type: document.getElementById('adType').value, url: document.getElementById('adUrl').value, skipTime: document.getElementById('adSkip').value }).then(() => alert("Ad Settings Saved!")); });
+      
+      onValue(ref(db, 'settings/social'), snap => { const d = snap.val(); if(d) { document.getElementById('socDiscord').value = d.discord || ''; document.getElementById('socTelegram').value = d.telegram || ''; document.getElementById('socWhatsapp').value = d.whatsapp || ''; document.getElementById('socInstagram').value = d.instagram || ''; document.getElementById('socX').value = d.x || ''; } }, {onlyOnce:true});
+      document.getElementById('saveSocBtn').addEventListener('click', () => { set(ref(db, 'settings/social'), { discord: document.getElementById('socDiscord').value, telegram: document.getElementById('socTelegram').value, whatsapp: document.getElementById('socWhatsapp').value, instagram: document.getElementById('socInstagram').value, x: document.getElementById('socX').value }).then(() => alert("Social Links Updated!")); });
+      
+      onValue(ref(db, 'settings/general'), snap => { const data = snap.val(); if(data?.favicon) document.getElementById('setFavicon').value = data.favicon; if(data?.apkLink) document.getElementById('setApkLink').value = data.apkLink; }, {onlyOnce:true});
+      document.getElementById('saveSetBtn').addEventListener('click', () => { update(ref(db, 'settings/general'), { favicon: document.getElementById('setFavicon').value, apkLink: document.getElementById('setApkLink').value }).then(()=>alert("Settings updated!")); });
+      
+      document.getElementById('wipeBtn').addEventListener('click', () => { if(confirm("Danger: Delete ALL Videos?")) { remove(ref(db, 'videos')).then(()=>alert("Wiped!")); } });
   }
 </script>
 </body>
 </html>
+
