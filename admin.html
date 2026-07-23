@@ -10,7 +10,7 @@
     :root { --bg: #07070F; --surf: #0F0F1C; --surf2: #181828; --surf3: #1F1F34; --red: #E63946; --red-h: #c1121f; --green: #2DC653; --text: #F0F0FF; --muted: #6E6E98; --border: rgba(255,255,255,0.07); --radius: 14px; --font: 'Poppins', sans-serif; --ease: .25s cubic-bezier(.4,0,.2,1); --sidebar:260px; }
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:var(--font); background:var(--bg); color:var(--text); }
-    #loginScreen { min-height:100vh; display:flex; align-items:center; justify-content:center; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(230,57,70,.2) 0%, transparent 70%); }
+    #loginScreen { min-height:100vh; display:flex; align-items:center; justify-content:center; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(230,57,70,.2) 0%, transparent 70%); flex-direction: column;}
     .login-box { width:100%; max-width:380px; background:var(--surf); border:1px solid var(--border); border-radius:20px; padding:2.5rem 2rem; }
     .login-brand { text-align:center; margin-bottom:2rem; }
     .login-brand h1 { font-size:1.6rem; font-weight:800; letter-spacing:-1px; }
@@ -55,18 +55,26 @@
     .photo-card { background: var(--surf2); padding: 10px; border-radius: 12px; border: 1px solid var(--border); text-align: center; }
     .photo-card img { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.1); }
     .photo-card p { font-size: 0.8rem; color: var(--muted); word-break: break-all; margin-bottom: 3px; }
+
+    /* Security Checkboxes Grid */
+    .sec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 15px; }
+    .sec-label { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; color: #fff; font-size: 0.85rem;}
+    .sec-label input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--red); }
     
+    #loginLoader { display: none; margin-top: 15px; font-size: 0.9rem; color: var(--red); font-weight: bold; text-align: center; }
+
     @media (max-width:700px) { :root { --sidebar:0px; } .sidebar { display:none; } .content { margin-left:0; padding:1.25rem 1rem; } }
   </style>
 </head>
 <body>
 
 <div id="loginScreen">
-  <div class="login-box">
+  <div class="login-box" id="loginFormArea">
     <div class="login-brand"><h1>▶ HotFake Admin</h1></div>
-    <input class="inp" type="email" id="emailInput" placeholder="Admin Email" style="margin-bottom: 0.8rem;">
+    <input class="inp" type="email" id="emailInput" placeholder="Admin Username / Email" style="margin-bottom: 0.8rem;">
     <input class="inp" type="password" id="passInput" placeholder="Password" onkeydown="if(event.key==='Enter') document.getElementById('loginBtn').click()">
-    <button id="loginBtn" class="btn btn-red btn-full">🔑 Login</button>
+    <button id="loginBtn" class="btn btn-red btn-full">🔑 Authenticate Device & Login</button>
+    <div id="loginLoader">🛡️ Verifying Device & OS details...</div>
   </div>
 </div>
 
@@ -89,6 +97,7 @@
       <a class="slink" data-page="adsPage">💰 Ad System</a>
 
       <div class="snav-title">Website Setup</div>
+      <a class="slink" data-page="securityPage" style="color: #ff8c94;">🛡️ Security Firewall</a>
       <a class="slink" data-page="socialPage">🔗 Social Links</a>
       <a class="slink" data-page="settingsPage">⚙️ Settings</a>
     </nav>
@@ -157,10 +166,10 @@
         </div>
     </div>
 
-    <!-- ⚡ REAL SMS OTP DYNAMIC PRICING PAGE -->
+    <!-- ⚡ REAL SERVER-SIDE OTP PRICING PAGE -->
     <div class="page" id="pricingPage">
         <h2>Dynamic Pricing & Subscription Control</h2>
-        <p style="color:var(--muted); font-size: 0.85rem;">Set real-time prices for plans. Protected by Real SMS OTP sent to Admin.</p>
+        <p style="color:var(--muted); font-size: 0.85rem;">Set real-time prices for plans. Protected by Server-Side OTP (No HTML Hacks).</p>
         
         <div class="card-panel" style="margin-top:1.5rem; background: var(--surf2); border-color: var(--red);">
             <h3 style="margin-bottom: 1rem; color: #fff;">Configure Plan Prices (in INR ₹)</h3>
@@ -194,18 +203,13 @@
 
             <hr style="border:0; border-top:1px solid var(--border); margin:1.5rem 0;">
 
-            <h4 style="margin-bottom:10px; color: var(--red);">🛡️ Live OTP Security (Anti-Hack Protection)</h4>
-            <p style="font-size:0.8rem; color: var(--muted); margin-bottom: 10px;">Pricing update requires a real-time SMS OTP verification sent to the Admin's registered mobile number.</p>
+            <h4 style="margin-bottom:10px; color: var(--red);">🛡️ Live OTP Security (Server-Side)</h4>
+            <p style="font-size:0.8rem; color: var(--muted); margin-bottom: 10px;">To prevent hacking, the phone number is hidden and fetched securely from the database. Click send to receive OTP on the registered Admin Number.</p>
 
             <div id="recaptcha-container"></div> 
 
             <div id="otpSetupSection">
-                <label>Admin Mobile Number (with country code, e.g. +919876543210)</label>
-                <div style="display:flex; gap:10px; max-width: 400px; margin-bottom:10px;">
-                    <input class="inp" type="tel" id="adminPhoneInput" placeholder="+91..." style="margin-bottom:0;">
-                    <button class="btn btn-gray" id="savePhoneBtn">Save Number</button>
-                </div>
-                <button class="btn btn-red" id="sendOtpBtn">📱 Send SMS OTP</button>
+                <button class="btn btn-red" id="sendOtpBtn">📱 Send SMS OTP to Admin Device</button>
             </div>
 
             <div id="otpVerifySection" style="display:none; margin-top: 15px;">
@@ -216,6 +220,44 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- 🛡️ NEW: SECURITY FIREWALL (DEVICE/OS/EMAIL LOCKS) -->
+    <div class="page" id="securityPage">
+        <h2>🛡️ Ultimate Security Firewall</h2>
+        <p style="color:var(--muted); font-size: 0.85rem;">Block unauthorized devices, hackers, Kali Linux, and scripts from accessing the Admin Panel.</p>
+        
+        <div class="card-panel" style="margin-top:1.5rem; background: var(--surf2); border-color: var(--red);">
+            
+            <h4 style="color:#fff; margin-bottom:10px;">1. Allowed Admin Usernames/Emails</h4>
+            <p style="font-size:0.8rem; color:var(--muted); margin-bottom:10px;">Separate multiple emails with commas. If blank, any registered auth user can login.</p>
+            <input type="text" class="inp" id="secEmails" placeholder="e.g. admin@hotfake.com, owner@hotfake.com">
+
+            <h4 style="color:#fff; margin-bottom:10px; margin-top:20px;">2. Registered Admin Phone Number (For OTPs)</h4>
+            <p style="font-size:0.8rem; color:var(--muted); margin-bottom:10px;">This number is hidden from the Pricing HTML page to prevent bypass hacks.</p>
+            <input type="tel" class="inp" id="secPhone" placeholder="+919876543210">
+
+            <h4 style="color:#fff; margin-bottom:10px; margin-top:20px;">3. Allowed Operating Systems (Block Hackers)</h4>
+            <div class="sec-grid" id="osGrid">
+                <label class="sec-label"><input type="checkbox" value="Windows" class="os-chk"> Windows (PC/Laptop)</label>
+                <label class="sec-label"><input type="checkbox" value="macOS" class="os-chk"> Mac OS</label>
+                <label class="sec-label"><input type="checkbox" value="Android" class="os-chk"> Android (Phone/Tab)</label>
+                <label class="sec-label"><input type="checkbox" value="iOS" class="os-chk"> iOS (iPhone/iPad)</label>
+                <label class="sec-label"><input type="checkbox" value="Linux" class="os-chk"> Linux (Kali/Ubuntu)</label>
+            </div>
+
+            <h4 style="color:#fff; margin-bottom:10px; margin-top:20px;">4. Allowed Web Browsers</h4>
+            <div class="sec-grid" id="browserGrid">
+                <label class="sec-label"><input type="checkbox" value="Chrome" class="br-chk"> Google Chrome</label>
+                <label class="sec-label"><input type="checkbox" value="Safari" class="br-chk"> Apple Safari</label>
+                <label class="sec-label"><input type="checkbox" value="Firefox" class="br-chk"> Mozilla Firefox</label>
+                <label class="sec-label"><input type="checkbox" value="Edge" class="br-chk"> Microsoft Edge</label>
+                <label class="sec-label"><input type="checkbox" value="Samsung Internet" class="br-chk"> Samsung Internet</label>
+                <label class="sec-label"><input type="checkbox" value="Opera" class="br-chk"> Opera / Brave</label>
+            </div>
+
+            <button class="btn btn-red btn-full" id="saveFirewallBtn" style="margin-top: 15px;">💾 Save Strict Firewall Rules</button>
         </div>
     </div>
 
@@ -497,40 +539,94 @@
   let allVideosRaw = {};
   let allUsersRaw = {};
 
-  function getAdminDeviceId() {
-      const rawString = `${navigator.userAgent}|${navigator.hardwareConcurrency}|${navigator.deviceMemory}|${window.screen.width}x${window.screen.height}`;
-      let hash = 0; for (let i = 0; i < rawString.length; i++) hash = ((hash << 5) - hash) + rawString.charCodeAt(i);
-      return Math.abs(hash).toString(36).toUpperCase();
+  // Core functions to identify Hacker OS/Browser
+  function getStrictOS() {
+      const ua = navigator.userAgent;
+      if (/Windows NT/i.test(ua)) return "Windows";
+      if (/Mac OS X/i.test(ua) && !/iPhone|iPad/i.test(ua)) return "macOS";
+      if (/Android/i.test(ua)) return "Android";
+      if (/iPhone|iPad|iPod/i.test(ua)) return "iOS";
+      if (/Linux/i.test(ua)) return "Linux";
+      return "Unknown";
+  }
+
+  function getStrictBrowser() {
+      const ua = navigator.userAgent;
+      if (/SamsungBrowser/i.test(ua)) return "Samsung Internet";
+      if (/Firefox/i.test(ua)) return "Firefox";
+      if (/OPR/i.test(ua) || /Opera/i.test(ua)) return "Opera";
+      if (/Edg/i.test(ua)) return "Edge";
+      if (/Chrome/i.test(ua)) return "Chrome";
+      if (/Safari/i.test(ua)) return "Safari";
+      return "Unknown";
   }
 
   document.getElementById('loginBtn').addEventListener('click', () => {
-    const email = document.getElementById('emailInput').value;
+    const email = document.getElementById('emailInput').value.trim();
     const pass = document.getElementById('passInput').value;
     
-    if(!email || !pass) return alert("Please enter Email and Password!");
+    if(!email || !pass) return alert("Please enter Username/Email and Password!");
+
+    const loginBtn = document.getElementById('loginBtn');
+    const loader = document.getElementById('loginLoader');
+    loginBtn.style.display = 'none';
+    loader.style.display = 'block';
 
     signInWithEmailAndPassword(auth, email, pass)
       .then(() => {
-          get(ref(db, 'settings/admin_device')).then((snap) => {
-              if (snap.exists() && snap.val() !== "OPEN") {
-                  if (getAdminDeviceId() !== snap.val()) {
+          // LAYER 2: SECURITY FIREWALL CHECK (BEFORE DASHBOARD ACCESS)
+          get(ref(db, 'settings/security')).then((snap) => {
+              const sec = snap.val() || {};
+              const myOS = getStrictOS();
+              const myBrowser = getStrictBrowser();
+
+              // 1. Check Allowed Emails / Usernames
+              if (sec.allowed_emails && sec.allowed_emails.trim() !== "") {
+                  const emailList = sec.allowed_emails.split(',').map(e => e.trim().toLowerCase());
+                  if (!emailList.includes(email.toLowerCase())) {
                       signOut(auth);
-                      alert("SECURITY ALERT: This device is not authorized for Admin Access!");
+                      loginBtn.style.display = 'inline-flex'; loader.style.display = 'none';
+                      return alert("🚫 SECURITY ALERT: This Username/Email is NOT whitelisted for Admin Access!");
                   }
-              } else {
-                  set(ref(db, 'settings/admin_device'), getAdminDeviceId());
               }
+
+              // 2. Check Operating System (Block Kali/Linux/Unknown)
+              if (sec.allowed_os && sec.allowed_os.length > 0) {
+                  if (!sec.allowed_os.includes(myOS)) {
+                      signOut(auth);
+                      loginBtn.style.display = 'inline-flex'; loader.style.display = 'none';
+                      return alert(`🚫 SECURITY ALERT: Your Operating System (${myOS}) is BLOCKED by the Firewall.`);
+                  }
+              }
+
+              // 3. Check Browser (Block Scripts/Tor/Unknown)
+              if (sec.allowed_browsers && sec.allowed_browsers.length > 0) {
+                  if (!sec.allowed_browsers.includes(myBrowser)) {
+                      signOut(auth);
+                      loginBtn.style.display = 'inline-flex'; loader.style.display = 'none';
+                      return alert(`🚫 SECURITY ALERT: Your Web Browser (${myBrowser}) is BLOCKED by the Firewall.`);
+                  }
+              }
+
+              // All Security Checks Passed!
+              document.getElementById('loginScreen').style.display = 'none';
+              document.getElementById('adminDash').style.display = 'flex';
+              initAdmin();
+          }).catch(err => {
+              signOut(auth);
+              alert("Error connecting to Security Firewall: " + err.message);
+              loginBtn.style.display = 'inline-flex'; loader.style.display = 'none';
           });
       })
-      .catch((error) => { alert('Incorrect Email or Password'); });
+      .catch((error) => { 
+          alert('Incorrect Username/Email or Password'); 
+          loginBtn.style.display = 'inline-flex'; loader.style.display = 'none';
+      });
   });
 
+  // Keep session alive if refreshed (Will still enforce UI hide on logout)
   onAuthStateChanged(auth, (user) => {
-    if (user) {
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('adminDash').style.display = 'flex';
-      initAdmin();
-    } else {
+    if (!user) {
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('adminDash').style.display = 'none';
     }
@@ -680,13 +776,53 @@
           }).then(() => { alert("Content Updated!"); document.getElementById('editModal').style.display = 'none'; });
       });
 
+
       // ==========================================
-      // SMS OTP & PRICING
+      // 🛡️ SECURITY FIREWALL SAVING LOGIC
       // ==========================================
-      onValue(ref(db, 'settings/admin_phone'), snap => {
-          if(snap.exists()) document.getElementById('adminPhoneInput').value = snap.val();
+      onValue(ref(db, 'settings/security'), snap => {
+          const sec = snap.val() || {};
+          document.getElementById('secEmails').value = sec.allowed_emails || '';
+          document.getElementById('secPhone').value = sec.admin_phone || '';
+
+          // Reset checkboxes
+          document.querySelectorAll('.os-chk').forEach(c => c.checked = false);
+          document.querySelectorAll('.br-chk').forEach(c => c.checked = false);
+
+          if (sec.allowed_os) {
+              document.querySelectorAll('.os-chk').forEach(c => {
+                  if(sec.allowed_os.includes(c.value)) c.checked = true;
+              });
+          }
+          if (sec.allowed_browsers) {
+              document.querySelectorAll('.br-chk').forEach(c => {
+                  if(sec.allowed_browsers.includes(c.value)) c.checked = true;
+              });
+          }
       });
 
+      document.getElementById('saveFirewallBtn').addEventListener('click', () => {
+          const allowedOs = Array.from(document.querySelectorAll('.os-chk:checked')).map(c => c.value);
+          const allowedBr = Array.from(document.querySelectorAll('.br-chk:checked')).map(c => c.value);
+          const emails = document.getElementById('secEmails').value.trim();
+          const phone = document.getElementById('secPhone').value.trim();
+
+          const securityData = {
+              allowed_os: allowedOs,
+              allowed_browsers: allowedBr,
+              allowed_emails: emails,
+              admin_phone: phone
+          };
+
+          set(ref(db, 'settings/security'), securityData).then(() => {
+              alert("🔒 Security Firewall Rules Updated! Hackers are now blocked.");
+          });
+      });
+
+
+      // ==========================================
+      // ⚡ SERVER-SIDE SMS OTP & PRICING
+      // ==========================================
       onValue(ref(db, 'settings/pricing'), snap => {
           const p = snap.val() || {};
           document.getElementById('priceMonthly').value = p.monthly || '';
@@ -696,12 +832,6 @@
           document.getElementById('priceSingleImg').value = p.singleImg || '';
       });
 
-      document.getElementById('savePhoneBtn').addEventListener('click', () => {
-          const phone = document.getElementById('adminPhoneInput').value.trim();
-          if(!phone.includes("+")) return alert("Please include country code (+91 for India).");
-          set(ref(db, 'settings/admin_phone'), phone).then(() => alert("Admin phone number saved!"));
-      });
-
       window.setupRecaptcha = function() {
           if(!window.recaptchaVerifier) {
               window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { 'size': 'invisible' });
@@ -709,33 +839,36 @@
       }
 
       document.getElementById('sendOtpBtn').addEventListener('click', async () => {
-          const adminPhone = document.getElementById('adminPhoneInput').value.trim();
-          if(!adminPhone) return alert("Please set Admin Phone Number first!");
-          
-          document.getElementById('sendOtpBtn').innerText = "Sending SMS...";
-          document.getElementById('sendOtpBtn').disabled = true;
+          // Fetch secure phone number directly from DB, no HTML input!
+          get(ref(db, 'settings/security/admin_phone')).then(snap => {
+              const securePhone = snap.val();
+              if(!securePhone) return alert("Admin Phone Number is not set! Go to 'Security Firewall' tab to set it.");
 
-          setupRecaptcha();
-          const appVerifier = window.recaptchaVerifier;
+              document.getElementById('sendOtpBtn').innerText = "Sending SMS to Secure Number...";
+              document.getElementById('sendOtpBtn').disabled = true;
 
-          signInWithPhoneNumber(auth, adminPhone, appVerifier)
-              .then((confirmationResult) => {
-                  window.confirmationResult = confirmationResult; 
-                  alert("✅ OTP SMS Sent successfully to " + adminPhone);
-                  document.getElementById('otpSetupSection').style.display = 'none';
-                  document.getElementById('otpVerifySection').style.display = 'block';
-              }).catch((error) => {
-                  alert("❌ Error sending OTP. Need Firebase Console Auth -> Phone enabled.");
-                  document.getElementById('sendOtpBtn').innerText = "📱 Send SMS OTP";
-                  document.getElementById('sendOtpBtn').disabled = false;
-              });
+              setupRecaptcha();
+              const appVerifier = window.recaptchaVerifier;
+
+              signInWithPhoneNumber(auth, securePhone, appVerifier)
+                  .then((confirmationResult) => {
+                      window.confirmationResult = confirmationResult; 
+                      alert("✅ OTP SMS Sent securely.");
+                      document.getElementById('otpSetupSection').style.display = 'none';
+                      document.getElementById('otpVerifySection').style.display = 'block';
+                  }).catch((error) => {
+                      alert("❌ Error sending OTP. Ensure Firebase Console Phone Auth is enabled.");
+                      document.getElementById('sendOtpBtn').innerText = "📱 Send SMS OTP to Admin Device";
+                      document.getElementById('sendOtpBtn').disabled = false;
+                  });
+          });
       });
 
       document.getElementById('verifyAndSaveBtn').addEventListener('click', () => {
           const code = document.getElementById('otpInput').value.trim();
           if(code.length !== 6) return alert("Enter 6-digit OTP.");
 
-          document.getElementById('verifyAndSaveBtn').innerText = "Verifying...";
+          document.getElementById('verifyAndSaveBtn').innerText = "Verifying on Server...";
           document.getElementById('verifyAndSaveBtn').disabled = true;
 
           confirmationResult.confirm(code).then((result) => {
@@ -753,20 +886,21 @@
                   document.getElementById('otpInput').value = '';
                   document.getElementById('otpVerifySection').style.display = 'none';
                   document.getElementById('otpSetupSection').style.display = 'block';
-                  document.getElementById('sendOtpBtn').innerText = "📱 Send SMS OTP";
+                  document.getElementById('sendOtpBtn').innerText = "📱 Send SMS OTP to Admin Device";
                   document.getElementById('sendOtpBtn').disabled = false;
                   document.getElementById('verifyAndSaveBtn').innerText = "✅ Verify & Save Prices";
                   document.getElementById('verifyAndSaveBtn').disabled = false;
               });
           }).catch((error) => {
-              alert("🚨 UNAUTHORIZED! Invalid OTP.");
+              alert("🚨 UNAUTHORIZED! Invalid OTP Hacker Attempt Blocked.");
               document.getElementById('verifyAndSaveBtn').innerText = "✅ Verify & Save Prices";
               document.getElementById('verifyAndSaveBtn').disabled = false;
           });
       });
 
+
       // ==========================================
-      // 📩 NEW: SUPPORT REQUESTS LOGIC (REPLY & HACKER BAN)
+      // 📩 SUPPORT REQUESTS LOGIC (REPLY & HACKER BAN)
       // ==========================================
       onValue(ref(db, 'support_requests'), snap => {
           const data = snap.val() || {};
@@ -1002,4 +1136,3 @@
 </script>
 </body>
 </html>
-
