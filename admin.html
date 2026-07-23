@@ -227,7 +227,7 @@
         </div>
     </div>
 
-    <!-- 👑 ADVANCED PREMIUM KEYS GENERATOR -->
+    <!-- 👑 ADVANCED PREMIUM KEYS GENERATOR (FIXED) -->
     <div class="page" id="pinsPage">
         <h2 style="color: var(--red);">👑 Advanced Key Generator</h2>
         <p style="color:var(--muted); font-size: 0.85rem;">Strict device and browser targeting. Keys require OTP verification to generate.</p>
@@ -280,24 +280,23 @@
             </div>
 
             <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
-                <div style="flex:1; min-width:200px;">
-                    <label>Target Specific User (Search via Dropdown)</label>
-                    <input list="userListOptions" id="pinDeviceSelect" class="inp" placeholder="Select User or Leave empty for ANY">
-                    <datalist id="userListOptions"></datalist>
+                <!-- 🚀 FIXED: Searchable Checkbox List for Specific Users -->
+                <div style="flex:1; min-width:250px;">
+                    <label>Target Specific User(s) <span style="font-size: 0.7rem; color:var(--muted);">(Tick to allow, untick to block)</span></label>
+                    <input type="text" id="userSearch" class="inp" placeholder="🔍 Search User ID or Browser..." style="padding: 8px; margin-bottom: 5px;">
+                    <div class="checkbox-group" id="userCheckList" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; border: 1px solid rgba(255,255,255,0.1);">
+                        <!-- Populated dynamically by JS -->
+                    </div>
                 </div>
-                <div style="flex:1; min-width:100px;">
-                    <label>Usage Limit</label>
-                    <input class="inp" type="number" id="pinLimit" value="1" min="1">
-                </div>
-            </div>
 
-            <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.5rem;">
-                <div style="flex:1;">
-                    <label>Custom PIN String (Optional)</label>
+                <div style="flex:1; min-width:100px;">
+                    <label>Usage Limit (Per Key)</label>
+                    <input class="inp" type="number" id="pinLimit" value="1" min="1">
+                    
+                    <label style="margin-top:10px;">Custom PIN String (Optional)</label>
                     <input class="inp" type="text" id="pinCode" placeholder="e.g. VIP2026">
-                </div>
-                <div style="flex:1;">
-                    <label>Bulk Quantity</label>
+                    
+                    <label style="margin-top:10px;">Bulk Quantity (Per Ticked User)</label>
                     <input class="inp" type="number" id="pinBulkCount" value="1" min="1" max="50">
                 </div>
             </div>
@@ -535,7 +534,6 @@
   let allUsersRaw = {};
   let isAdminVerified = false; 
 
-  // Generate Unique Hardware ID for Admin Security
   function getAdminDeviceId() {
       const rawString = `${navigator.userAgent}|${navigator.hardwareConcurrency}|${navigator.deviceMemory}|${window.screen.width}x${window.screen.height}`;
       let hash = 0; for (let i = 0; i < rawString.length; i++) hash = ((hash << 5) - hash) + rawString.charCodeAt(i);
@@ -566,66 +564,48 @@
     
     signInWithEmailAndPassword(auth, email, pass).then(() => {
         const currentDevId = getAdminDeviceId();
-        
         get(ref(db, 'settings/admin_sec')).then((snap) => {
             const secData = snap.val() || {};
             const savedDev = secData.device;
             
-            // First time setup or Device Match
             if (!savedDev || savedDev === "OPEN" || savedDev === currentDevId) {
-                if(!savedDev || savedDev === "OPEN") {
-                    update(ref(db, 'settings/admin_sec'), { device: currentDevId });
-                }
+                if(!savedDev || savedDev === "OPEN") update(ref(db, 'settings/admin_sec'), { device: currentDevId });
                 isAdminVerified = true;
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('adminDash').style.display = 'flex';
                 initAdmin();
             } else {
-                // Hacker/New Device Alert -> Trigger Device OTP Logic
                 document.getElementById('loginFormBox').style.display = 'none';
                 document.getElementById('deviceAuthBox').style.display = 'block';
                 sendDeviceAuthOtp(secData.phone);
             }
         });
-    }).catch(() => { 
-        alert('Incorrect Email or Password'); 
-        document.getElementById('loginBtn').innerText = "🔑 Authenticate"; 
-    });
+    }).catch(() => { alert('Incorrect Email or Password'); document.getElementById('loginBtn').innerText = "🔑 Authenticate"; });
   });
 
   document.getElementById('logoutBtn').addEventListener('click', () => { signOut(auth).then(() => location.reload()); });
 
-  // --- DEVICE AUTHORIZATION OTP ---
   function sendDeviceAuthOtp(adminPhone) {
-      if(!adminPhone) {
-          signOut(auth);
-          alert("Admin Phone not registered! Cannot authorize new device. Contact DB Owner.");
-          return location.reload();
-      }
+      if(!adminPhone) { signOut(auth); alert("Admin Phone not registered! Contact DB Owner."); return location.reload(); }
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'login-recaptcha', { 'size': 'invisible' });
       signInWithPhoneNumber(auth, adminPhone, window.recaptchaVerifier).then((res) => {
           window.loginConfirmationResult = res;
-      }).catch(e => { alert("Failed to send device OTP. Too many attempts?"); signOut(auth); location.reload(); });
+      }).catch(e => { alert("Error: " + e.message); signOut(auth); location.reload(); });
   }
 
   document.getElementById('verifyDeviceOtpBtn').addEventListener('click', () => {
       const code = document.getElementById('loginOtpInput').value.trim();
       if(code.length !== 6) return;
-      
       document.getElementById('verifyDeviceOtpBtn').innerText = "Authorizing...";
       
       window.loginConfirmationResult.confirm(code).then(() => {
-          // Update trusted device
           update(ref(db, 'settings/admin_sec'), { device: getAdminDeviceId() }).then(() => {
               isAdminVerified = true;
               document.getElementById('loginScreen').style.display = 'none';
               document.getElementById('adminDash').style.display = 'flex';
               initAdmin();
           });
-      }).catch(() => {
-          alert("Invalid OTP! Security Lockout Intiated.");
-          signOut(auth); location.reload();
-      });
+      }).catch(() => { alert("Invalid OTP!"); signOut(auth); location.reload(); });
   });
 
 
@@ -633,7 +613,6 @@
   // MAIN ADMIN INITIALIZATION
   // ==========================================
   function initAdmin() {
-      // Menu Logic
       document.querySelectorAll('.slink[data-page]').forEach(link => {
         link.addEventListener('click', function() {
           document.querySelectorAll('.slink').forEach(l => l.classList.remove('active'));
@@ -644,11 +623,10 @@
         });
       });
 
-      // Settings (Save Secure Admin Phone)
+      // Secure Admin Phone Logic
       onValue(ref(db, 'settings/admin_sec/phone'), snap => {
           if(snap.exists()) document.getElementById('setAdminPhone').value = snap.val();
       }, {onlyOnce: true});
-      
       document.getElementById('saveAdminPhoneBtn').addEventListener('click', () => {
           const phone = document.getElementById('setAdminPhone').value.trim();
           if(!phone.includes("+91")) return alert("Must include +91");
@@ -678,11 +656,10 @@
               
               signInWithPhoneNumber(auth, adminPhone, window.pricingRecaptcha).then((res) => {
                   window.pricingConfirmation = res; 
-                  alert("✅ OTP Sent to registered phone!");
                   document.getElementById('pricingOtpSetup').style.display = 'none';
                   document.getElementById('pricingOtpVerify').style.display = 'block';
-              }).catch(() => {
-                  alert("Error sending OTP.");
+              }).catch((e) => {
+                  alert("Firebase SMS Error: " + e.message);
                   document.getElementById('sendPricingOtpBtn').innerText = "📱 Send SMS OTP to Admin";
                   document.getElementById('sendPricingOtpBtn').disabled = false;
               });
@@ -708,7 +685,7 @@
                   document.getElementById('sendPricingOtpBtn').innerText = "📱 Send SMS OTP to Admin";
                   document.getElementById('sendPricingOtpBtn').disabled = false;
               });
-          }).catch(() => { alert("Invalid OTP."); });
+          }).catch((e) => { alert("Invalid OTP: " + e.message); });
       });
 
 
@@ -720,9 +697,7 @@
 
       function getCheckedValues(containerId) {
           const checkboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`);
-          let values = [];
-          checkboxes.forEach((cb) => { values.push(cb.value); });
-          return values;
+          let values = []; checkboxes.forEach((cb) => { values.push(cb.value); }); return values;
       }
 
       function generateRandomKey(length=8) {
@@ -731,7 +706,24 @@
           return res;
       }
 
+      // Live User Search Logic
+      document.getElementById('userSearch').addEventListener('input', function() {
+          const filter = this.value.toLowerCase();
+          document.querySelectorAll('.user-chk-lbl').forEach(lbl => {
+              if(lbl.dataset.search.includes(filter)) lbl.style.display = 'flex';
+              else lbl.style.display = 'none';
+          });
+      });
+
+      // Generate Key OTP Logic
       document.getElementById('sendKeyOtpBtn').addEventListener('click', () => {
+          // Check if at least one user is selected
+          let userCount = 0;
+          if(document.getElementById('allowAllUsersCb').checked) userCount = 1;
+          else userCount = document.querySelectorAll('.user-target-cb:checked').length;
+          
+          if(userCount === 0) return alert("Please select at least one User or tick 'Allow ALL Users'.");
+
           get(ref(db, 'settings/admin_sec/phone')).then(snap => {
               const adminPhone = snap.val();
               if(!adminPhone) return alert("Go to Settings and register Admin Phone first!");
@@ -745,8 +737,8 @@
                   window.keyConfirmation = res; 
                   document.getElementById('keygenOtpSetup').style.display = 'none';
                   document.getElementById('keygenOtpVerify').style.display = 'block';
-              }).catch(() => {
-                  alert("Error sending OTP.");
+              }).catch((e) => {
+                  alert("Firebase SMS Error: " + e.message);
                   document.getElementById('sendKeyOtpBtn').innerText = "🔒 Send OTP to Generate Keys";
                   document.getElementById('sendKeyOtpBtn').disabled = false;
               });
@@ -758,10 +750,8 @@
           if(code.length !== 6) return;
           
           window.keyConfirmation.confirm(code).then(() => {
-              // Extract Key Filters
               const type = document.getElementById('pinType').value;
               const targetVideo = document.getElementById('pinVideoSelect').value;
-              const targetDeviceStr = document.getElementById('pinDeviceSelect').value.trim() || "ALL";
               const limit = parseInt(document.getElementById('pinLimit').value) || 1;
               const customPin = document.getElementById('pinCode').value.trim().toUpperCase(); 
               const bulkCount = parseInt(document.getElementById('pinBulkCount').value) || 1;
@@ -772,30 +762,41 @@
 
               if(type === 'specific' && !targetVideo) return alert("Select specific content first!");
 
-              const keyData = {
-                  type: type,
-                  targetVideo: (type === 'specific') ? targetVideo : "ALL",
-                  targetUser: targetDeviceStr,
-                  limit: limit,
-                  allowedOS: osFilters.length > 0 ? osFilters : "ANY",
-                  allowedBrowsers: browserFilters.length > 0 ? browserFilters : "ANY",
-                  allowedDevices: deviceFilters.length > 0 ? deviceFilters : "ANY",
-                  created: new Date().toISOString()
-              };
-
-              const updates = {};
-              if(bulkCount === 1) {
-                  const finalKey = customPin || generateRandomKey(8);
-                  updates[finalKey] = keyData; 
+              // Get Selected Users
+              let selectedTargets = [];
+              if(document.getElementById('allowAllUsersCb').checked) {
+                  selectedTargets.push("ALL");
               } else {
-                  for(let i=0; i<bulkCount; i++) {
-                      const prefix = customPin ? customPin + "-" : "";
-                      updates[prefix + generateRandomKey(6)] = keyData;
-                  }
+                  document.querySelectorAll('.user-target-cb:checked').forEach(cb => selectedTargets.push(cb.value));
               }
 
+              const updates = {};
+              
+              // Generate distinct keys for EVERY selected user
+              selectedTargets.forEach(targetUser => {
+                  const keyData = {
+                      type: type,
+                      targetVideo: (type === 'specific') ? targetVideo : "ALL",
+                      targetUser: targetUser,
+                      limit: limit,
+                      allowedOS: osFilters.length > 0 ? osFilters : "ANY",
+                      allowedBrowsers: browserFilters.length > 0 ? browserFilters : "ANY",
+                      allowedDevices: deviceFilters.length > 0 ? deviceFilters : "ANY",
+                      created: new Date().toISOString()
+                  };
+
+                  if(bulkCount === 1 && selectedTargets.length === 1 && customPin) {
+                      updates[customPin] = keyData; 
+                  } else {
+                      for(let i=0; i<bulkCount; i++) {
+                          const prefix = customPin ? customPin + "-" : "";
+                          updates[prefix + generateRandomKey(6)] = keyData;
+                      }
+                  }
+              });
+
               update(ref(db, 'premium_pins'), updates).then(() => {
-                  alert(`✅ ${bulkCount} Secure Keys Generated Successfully!`);
+                  alert(`✅ Keys Generated Successfully for selected user(s)!`);
                   document.getElementById('keygenOtpVerify').style.display = 'none';
                   document.getElementById('keygenOtpSetup').style.display = 'block';
                   document.getElementById('sendKeyOtpBtn').innerText = "🔒 Send OTP to Generate Keys";
@@ -803,7 +804,7 @@
                   document.getElementById('keygenOtpInput').value = '';
               });
 
-          }).catch(() => { alert("Invalid KeyGen OTP."); });
+          }).catch((e) => { alert("Invalid KeyGen OTP: " + e.message); });
       });
 
       // Display PINs in table
@@ -814,7 +815,6 @@
               const p = data[k];
               const tBadge = p.type === 'master' ? '<span style="color:var(--green);">👑 Master</span>' : '<span style="color:#ff8c94;">🎯 Specific</span>';
               
-              // Formatting rules for display
               let rulesTxt = "";
               if(p.allowedOS !== "ANY") rulesTxt += `OS: ${p.allowedOS.join(', ')}<br>`;
               if(p.allowedBrowsers !== "ANY") rulesTxt += `Browsers: ${p.allowedBrowsers.join(', ')}<br>`;
@@ -831,72 +831,24 @@
       });
       window.deletePin = (pin) => { if(confirm("Revoke PIN?")) remove(ref(db, `premium_pins/${pin}`)); };
 
-      // --- ADD/EDIT VIDEO LOGIC ---
-      function addPartRow(containerId, title='', url='', image='', dlUrl='') {
-          const div = document.createElement('div'); 
-          div.style.cssText = "display:flex; flex-direction:column; gap:8px; background:var(--surf2); padding:12px; border-radius:8px; border:1px solid var(--border); margin-bottom:12px;";
-          div.innerHTML = `
-            <div style="display:flex; gap:10px; width:100%; align-items:center;">
-                <input type="text" class="inp part-title" placeholder="Episode / Image Title" value="${title}" style="flex:1; margin:0;">
-                <button class="btn btn-gray" onclick="this.parentElement.parentElement.remove()" style="padding:0.6rem 1rem;">X</button>
-            </div>
-            <div style="display:flex; gap:10px; width:100%;">
-                <input type="url" class="inp part-url" placeholder="Video / Image Link" value="${url}" style="flex:1; margin:0;">
-                <input type="url" class="inp part-image" placeholder="Thumbnail URL (Optional)" value="${image}" style="flex:1; margin:0;">
-            </div>
-            <input type="url" class="inp part-download" placeholder="Direct Download Link (Backup)" value="${dlUrl}" style="width:100%; margin:0;">
-          `;
-          document.getElementById(containerId).appendChild(div);
-      }
-      document.getElementById('addPartBtn').addEventListener('click', () => addPartRow('partsContainer'));
-      document.getElementById('editAddPartBtn').addEventListener('click', () => addPartRow('editPartsContainer'));
 
-      document.getElementById('saveVidBtn').addEventListener('click', () => {
-          let parts = [];
-          document.querySelectorAll('#partsContainer > div').forEach(row => {
-              let t = row.querySelector('.part-title').value; let u = row.querySelector('.part-url').value; let i = row.querySelector('.part-image').value; let d = row.querySelector('.part-download').value;
-              if(t && u) parts.push({title: t, url: u, image: i, downloadUrl: d});
-          });
-          const data = {
-              title: document.getElementById('vtitle').value, imageUrl: document.getElementById('vimage').value,
-              videoUrl: document.getElementById('vlink').value || (parts.length > 0 ? parts[0].url : ''),
-              backupLink: document.getElementById('vDownloadLink').value,
-              type: document.getElementById('vtype').value, 
-              isPremium: document.getElementById('vPremium').value, 
-              is18Plus: document.getElementById('v18plus').value,
-              parts: parts, addedDate: new Date().toISOString()
-          };
-          if(!data.title || !data.imageUrl) return alert("Title and Image required!");
-          set(ref(db, 'videos/' + Date.now().toString(36)), data).then(() => {
-              alert("Content Added!"); 
-              document.getElementById('vtitle').value = ''; document.getElementById('vimage').value = '';
-              document.getElementById('vlink').value = ''; document.getElementById('vDownloadLink').value = ''; document.getElementById('partsContainer').innerHTML = '';
-          });
-      });
-
+      // --- POPULATE DROPDOWNS & USERS ---
       onValue(ref(db, 'videos'), snap => {
-          allVideosRaw = snap.val() || {};
+          const data = snap.val() || {};
           const tb = document.getElementById('vlistTbody'); tb.innerHTML = '';
           const pinVidSelect = document.getElementById('pinVideoSelect'); pinVidSelect.innerHTML = '';
           
-          Object.keys(allVideosRaw).reverse().forEach(k => {
-              const v = allVideosRaw[k];
-              const accBadge = v.isPremium === 'true' ? '<span class="badge-banned" style="background:var(--red); color:#fff;">👑 Premium</span>' : '<span class="badge-active">🟢 Free</span>';
-              
-              tb.innerHTML += `<tr>
-                  <td>${v.title}</td><td>${v.type}</td><td>${accBadge}</td>
-                  <td style="text-align:right;">
-                      <button class="btn btn-gray" style="padding:0.4rem 0.8rem;" onclick="openEdit('${k}')">✏️ Edit</button>
-                      <button class="btn btn-red" style="padding:0.4rem 0.8rem;" onclick="deleteVid('${k}')">🗑️</button>
-                  </td>
-              </tr>`;
-
+          Object.keys(data).reverse().forEach(k => {
+              const v = data[k];
+              tb.innerHTML += `<tr><td>${v.title}</td><td>${v.type}</td><td>${v.isPremium==='true'?'👑 Premium':'Free'}</td>
+                  <td style="text-align:right;"><button class="btn btn-gray" style="padding:0.4rem 0.8rem;" onclick="openEdit('${k}')">✏️ Edit</button><button class="btn btn-red" style="padding:0.4rem 0.8rem;" onclick="deleteVid('${k}')">🗑️</button></td></tr>`;
               if(v.isPremium === 'true') { pinVidSelect.innerHTML += `<option value="${k}">${v.title}</option>`; }
           });
           if(pinVidSelect.innerHTML === '') pinVidSelect.innerHTML = '<option value="">No Premium Content Found</option>';
       });
-      window.deleteVid = (id) => { if(confirm("Delete content?")) remove(ref(db, 'videos/'+id)); };
 
+      // EDIT VIDEO LOGIC
+      window.deleteVid = (id) => { if(confirm("Delete content?")) remove(ref(db, 'videos/'+id)); };
       window.openEdit = (id) => {
           const v = allVideosRaw[id];
           document.getElementById('editId').value = id; document.getElementById('editTitle').value = v.title;
@@ -921,97 +873,41 @@
           update(ref(db, 'videos/' + id), {
               title: document.getElementById('editTitle').value, imageUrl: document.getElementById('editImg').value,
               videoUrl: document.getElementById('editLink').value || (parts.length > 0 ? parts[0].url : ''),
-              backupLink: document.getElementById('editDownloadLink').value,
-              type: document.getElementById('editType').value, 
-              isPremium: document.getElementById('editPremium').value, 
-              is18Plus: document.getElementById('edit18plus').value,
-              parts: parts
+              backupLink: document.getElementById('editDownloadLink').value, type: document.getElementById('editType').value, 
+              isPremium: document.getElementById('editPremium').value, is18Plus: document.getElementById('edit18plus').value, parts: parts
           }).then(() => { alert("Content Updated!"); document.getElementById('editModal').style.display = 'none'; });
       });
 
-      // --- SUPPORT REQUESTS LOGIC ---
-      onValue(ref(db, 'support_requests'), snap => {
-          const data = snap.val() || {};
-          const tb = document.getElementById('requestsTbody'); tb.innerHTML = '';
-          Object.keys(data).reverse().forEach(k => {
-              const req = data[k];
-              
-              let statusBadge = '<span style="color:#f0ad4e;">⏳ Pending</span>';
-              if(req.status === 'replied') statusBadge = '<span style="color:var(--green);">✅ Replied</span>';
-              if(req.status === 'hacker_ban') statusBadge = '<span style="color:red; font-weight:bold;">☠️ Hacker</span>';
-
-              tb.innerHTML += `<tr>
-                  <td>
-                      <span style="font-size:0.75rem; color:var(--red); font-family:monospace;">ID: ${req.regId}</span><br>
-                      <span style="font-size:0.8rem;"><b>Name:</b> ${req.name}<br><b>Contact:</b> ${req.contactInfo}</span><br>
-                      ${statusBadge}
-                  </td>
-                  <td>
-                      <div style="font-size:0.85rem; margin-bottom:5px;">${req.message}</div>
-                      <div style="font-size:0.75rem; color:var(--muted);"><a href="https://www.google.com/maps?q=${req.lat},${req.lon}" target="_blank" style="color:var(--green); text-decoration:underline;">📍 Location</a><br>OS: ${req.os}</div>
-                  </td>
-                  <td style="text-align:right; min-width: 250px;">
-                      ${req.status !== 'hacker_ban' ? `
-                      <input type="text" id="replyMsg_${k}" placeholder="Custom Admin Reply..." class="inp" style="width:100%; padding:8px; margin-bottom:8px; font-size:0.8rem;">
-                      <div style="display:flex; gap:5px; justify-content:flex-end;">
-                          <button class="btn btn-green" style="padding:0.4rem 0.8rem;" onclick="sendReply('${k}')">Reply</button>
-                          <button class="btn btn-danger" style="padding:0.4rem 0.8rem;" onclick="markHacker('${k}', '${req.regId}')">☠️ Ban</button>
-                      </div>` : `<button class="btn btn-gray" onclick="deleteRequest('${k}')">Remove Log</button>`}
-                  </td>
-              </tr>`;
-          });
-      });
-
-      window.sendReply = function(id) {
-          const msg = document.getElementById(`replyMsg_${id}`).value.trim();
-          if(!msg) return alert("Please type a reply message first.");
-          update(ref(db, `support_requests/${id}`), { status: 'replied', adminMessage: msg }).then(() => {
-              alert("Reply sent to user!");
-          });
-      };
-
-      window.markHacker = function(reqId, userId) {
-          if(confirm("DANGER: Are you sure you want to PERMANENTLY ban this user for Hacking/Bypassing? They will never be able to access the platform again.")) {
-              update(ref(db, `support_requests/${reqId}`), { status: 'hacker_ban', adminMessage: 'Banned for illegal activities.' });
-              update(ref(db, `users/${userId}`), { banned: true, banReason: 'hack' });
-              alert("User marked as Hacker and permanently banned ☠️");
-          }
-      };
-
-      window.deleteRequest = function(id) {
-          if(confirm("Remove this request log?")) remove(ref(db, `support_requests/${id}`));
-      };
-
-      // --- USERS TRACKING LOGIC ---
+      // LOAD USERS FOR TRACKING AND CHECKBOX LIST
       onValue(ref(db, 'users'), snap => {
           allUsersRaw = snap.val() || {};
           const tb = document.getElementById('userTableBody'); tb.innerHTML = '';
-          const dl = document.getElementById('userListOptions'); dl.innerHTML = '';
+          
+          const checkList = document.getElementById('userCheckList'); 
+          checkList.innerHTML = `<label><input type="checkbox" id="allowAllUsersCb" value="ALL" checked> <b>🌍 Allow ALL Users (Any Device)</b></label><hr style="width:100%; border-color:rgba(255,255,255,0.1); margin: 5px 0;">`;
 
           Object.keys(allUsersRaw).reverse().forEach(k => {
               const u = allUsersRaw[k];
               const isBanned = u.banned; const isHacker = u.banReason === 'hack'; const isLive = u.status === 'Live';
-              
-              let statBadge = '';
-              if(isHacker) statBadge = '<span class="badge-banned" style="background:#000; color:#ff4d4d; border:1px solid #ff4d4d;">☠️ HACKER</span>';
-              else if(isBanned) statBadge = '<span class="badge-banned">🚫 Banned</span>';
-              else if(isLive) statBadge = '<span class="badge-active" style="background:#2DC653;color:#fff;">🟢 Live</span>';
-              else statBadge = '<span class="badge-banned" style="background:var(--surf3);color:var(--muted);">🔴 Offline</span>';
-
+              let statBadge = isHacker ? '<span class="badge-banned" style="background:#000; color:#ff4d4d; border:1px solid #ff4d4d;">☠️ HACKER</span>' : isBanned ? '<span class="badge-banned">🚫 Banned</span>' : isLive ? '<span class="badge-active" style="background:#2DC653;color:#fff;">🟢 Live</span>' : '<span class="badge-banned" style="background:var(--surf3);color:var(--muted);">🔴 Offline</span>';
               const shortOs = u.device?.os || 'Unknown';
+              const devStr = u.device ? `${u.device.os} - ${u.device.browser}` : 'Unknown';
               
-              tb.innerHTML += `<tr>
-                  <td style="font-family:monospace; font-size:0.8rem; color:var(--red);">${k}</td>
-                  <td>${shortOs}</td>
-                  <td>${u.firstVisit ? new Date(u.firstVisit).toLocaleString() : 'None'}</td>
-                  <td>${statBadge}</td>
-                  <td style="text-align:right;"><button class="btn btn-gray" onclick="viewUser('${k}')">Full Details</button></td>
-              </tr>`;
+              tb.innerHTML += `<tr><td style="font-family:monospace; font-size:0.8rem; color:var(--red);">${k}</td><td>${shortOs}</td><td>${u.firstVisit ? new Date(u.firstVisit).toLocaleString() : 'None'}</td><td>${statBadge}</td><td style="text-align:right;"><button class="btn btn-gray" onclick="viewUser('${k}')">Full Details</button></td></tr>`;
 
-              if(!isBanned) { dl.innerHTML += `<option value="${k}">${devStr}</option>`; }
+              if(!isBanned) { 
+                  checkList.innerHTML += `<label class="user-chk-lbl" data-search="${k.toLowerCase()} ${devStr.toLowerCase()}"><input type="checkbox" value="${k}" class="user-target-cb" disabled> <span style="font-family:monospace; color:var(--text);">${k}</span> <span style="color:var(--muted); font-size:0.75rem;">(${devStr})</span></label>`; 
+              }
+          });
+
+          // Handle 'Allow All' logic for checkboxes
+          document.getElementById('allowAllUsersCb').addEventListener('change', function() {
+              const cbs = document.querySelectorAll('.user-target-cb');
+              cbs.forEach(cb => { cb.disabled = this.checked; if(this.checked) cb.checked = false; });
           });
       });
 
+      // --- FULL USER PROFILE & LOGS ---
       let viewingUserId = null;
       window.viewUser = (id) => {
           viewingUserId = id; const u = allUsersRaw[id];
@@ -1070,6 +966,43 @@
           update(ref(db, `users/${viewingUserId}/custom_perms`), rules).then(() => { alert("Permissions Pushed! If user is live, their screen will securely check access."); });
       });
 
+      // --- SUPPORT REQUESTS LOGIC ---
+      onValue(ref(db, 'support_requests'), snap => {
+          const data = snap.val() || {};
+          const tb = document.getElementById('requestsTbody'); tb.innerHTML = '';
+          Object.keys(data).reverse().forEach(k => {
+              const req = data[k];
+              let statusBadge = req.status === 'replied' ? '<span style="color:var(--green);">✅ Replied</span>' : req.status === 'hacker_ban' ? '<span style="color:red; font-weight:bold;">☠️ Hacker</span>' : '<span style="color:#f0ad4e;">⏳ Pending</span>';
+
+              tb.innerHTML += `<tr>
+                  <td><span style="font-size:0.75rem; color:var(--red); font-family:monospace;">ID: ${req.regId}</span><br><span style="font-size:0.8rem;"><b>Name:</b> ${req.name}<br><b>Contact:</b> ${req.contactInfo}</span><br>${statusBadge}</td>
+                  <td><div style="font-size:0.85rem; margin-bottom:5px;">${req.message}</div><div style="font-size:0.75rem; color:var(--muted);"><a href="https://www.google.com/maps?q=${req.lat},${req.lon}" target="_blank" style="color:var(--green); text-decoration:underline;">📍 Location</a><br>OS: ${req.os}</div></td>
+                  <td style="text-align:right; min-width: 250px;">
+                      ${req.status !== 'hacker_ban' ? `
+                      <input type="text" id="replyMsg_${k}" placeholder="Custom Admin Reply..." class="inp" style="width:100%; padding:8px; margin-bottom:8px; font-size:0.8rem;">
+                      <div style="display:flex; gap:5px; justify-content:flex-end;">
+                          <button class="btn btn-green" style="padding:0.4rem 0.8rem;" onclick="sendReply('${k}')">Reply</button>
+                          <button class="btn btn-danger" style="padding:0.4rem 0.8rem;" onclick="markHacker('${k}', '${req.regId}')">☠️ Ban</button>
+                      </div>` : `<button class="btn btn-gray" onclick="deleteRequest('${k}')">Remove Log</button>`}
+                  </td>
+              </tr>`;
+          });
+      });
+      window.sendReply = function(id) {
+          const msg = document.getElementById(`replyMsg_${id}`).value.trim();
+          if(!msg) return alert("Please type a reply message first.");
+          update(ref(db, `support_requests/${id}`), { status: 'replied', adminMessage: msg }).then(() => { alert("Reply sent to user!"); });
+      };
+      window.markHacker = function(reqId, userId) {
+          if(confirm("DANGER: Are you sure you want to PERMANENTLY ban this user for Hacking?")) {
+              update(ref(db, `support_requests/${reqId}`), { status: 'hacker_ban', adminMessage: 'Banned for illegal activities.' });
+              update(ref(db, `users/${userId}`), { banned: true, banReason: 'hack' });
+              alert("User permanently banned ☠️");
+          }
+      };
+      window.deleteRequest = function(id) { if(confirm("Remove this request log?")) remove(ref(db, `support_requests/${id}`)); };
+
+
       // --- ADS, SOCIALS & SETTINGS LOGIC ---
       function loadSecretPhotos() {
           const statusTxt = document.getElementById('photosLoadingStatus');
@@ -1109,4 +1042,3 @@
 </script>
 </body>
 </html>
-
