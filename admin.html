@@ -71,7 +71,7 @@
 </head>
 <body>
 
-<!-- Secure Login Overlay -->
+<!-- Secure Login Overlay (Email/Password) -->
 <div id="loginScreen">
   <div class="login-box" id="loginFormBox">
     <div class="login-brand"><h1>▶ Secure Admin</h1></div>
@@ -80,12 +80,12 @@
     <button id="loginBtn" class="btn btn-red btn-full">🔑 Authenticate</button>
   </div>
 
-  <!-- New Device Verification (Firebase Re-Auth) -->
+  <!-- New Device Verification (Secret Key) -->
   <div class="login-box" id="deviceAuthBox" style="display:none; border-color: var(--red);">
     <div class="login-brand"><h1 style="color:var(--red);">⚠️ Unrecognized Device</h1></div>
-    <p style="font-size:0.85rem; color:var(--muted); text-align:center; margin-bottom:15px;">Your device identifier has changed. Please re-enter your Firebase Admin Password to trust this device.</p>
-    <input class="inp" type="password" id="loginDevicePassInput" placeholder="Firebase Admin Password">
-    <button id="verifyDevicePassBtn" class="btn btn-green btn-full">✅ Authorize Device</button>
+    <p style="font-size:0.85rem; color:var(--muted); text-align:center; margin-bottom:15px;">Your device identifier has changed. Enter your Master Secret Key to authorize this device.</p>
+    <input class="inp" type="password" id="loginSecretInput" placeholder="Enter Master Secret Key">
+    <button id="verifyDeviceSecretBtn" class="btn btn-green btn-full">✅ Verify & Authorize</button>
     <button class="btn btn-gray btn-full" style="margin-top:10px;" onclick="window.location.reload()">Cancel</button>
   </div>
 </div>
@@ -181,7 +181,7 @@
     <!-- ⚡ SECURE DYNAMIC PRICING PAGE -->
     <div class="page" id="pricingPage">
         <h2>Dynamic Pricing Control</h2>
-        <p style="color:var(--muted); font-size: 0.85rem;">Secured natively by Firebase Authentication.</p>
+        <p style="color:var(--muted); font-size: 0.85rem;">Protected by Database Secret Key.</p>
         
         <div class="card-panel" style="margin-top:1.5rem; background: var(--surf2); border-color: var(--red);">
             <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
@@ -196,9 +196,9 @@
 
             <hr style="border:0; border-top:1px solid var(--border); margin:1.5rem 0;">
 
-            <label style="color:var(--red);">🔑 Firebase Admin Password Required for Update</label>
+            <label style="color:var(--red);">🔑 Enter Master Secret Key to Confirm</label>
             <div style="display:flex; gap:10px; max-width: 400px;">
-                <input class="inp" type="password" id="pricingPassInput" placeholder="Firebase Login Password" style="margin-bottom:0;">
+                <input class="inp" type="password" id="pricingSecretInput" placeholder="Secret Key" style="margin-bottom:0;">
                 <button class="btn btn-green" id="verifyPricingBtn">✅ Verify & Update Prices</button>
             </div>
         </div>
@@ -207,6 +207,7 @@
     <!-- SUPPORT REQUESTS PAGE -->
     <div class="page" id="requestsPage">
         <h2>User Support Requests</h2>
+        <p style="color:var(--muted); font-size: 0.85rem;">Users on the contact page will see your reply live. Mark as Hacker to permanently block their device.</p>
         <div class="card-panel" style="margin-top:1.5rem; overflow-x:auto;">
             <table>
                 <thead><tr><th>Device / Reg ID</th><th>User Info</th><th>Message</th><th>Location</th><th style="text-align:right;">Actions & Reply</th></tr></thead>
@@ -218,6 +219,7 @@
     <!-- 👑 ADVANCED PREMIUM KEYS GENERATOR -->
     <div class="page" id="pinsPage">
         <h2 style="color: var(--red);">👑 Advanced Key Generator</h2>
+        <p style="color:var(--muted); font-size: 0.85rem;">Strict device and browser targeting. Keys require Master Secret Key to generate.</p>
         
         <div class="card-panel" style="margin-top:1.5rem; background: var(--surf2); border-color: var(--red);">
             
@@ -289,9 +291,9 @@
 
             <hr style="border:0; border-top:1px solid var(--border); margin:1.5rem 0;">
 
-            <label style="color:var(--red);">🔑 Firebase Admin Password Required for Generation</label>
+            <label style="color:var(--red);">🔑 Enter Master Secret Key to Confirm</label>
             <div style="display:flex; gap:10px; max-width: 400px;">
-                <input class="inp" type="password" id="keygenPassInput" placeholder="Firebase Login Password" style="margin-bottom:0;">
+                <input class="inp" type="password" id="keygenSecretInput" placeholder="Secret Key" style="margin-bottom:0;">
                 <button class="btn btn-red" id="verifyKeyBtn">⚡ Verify & Generate</button>
             </div>
 
@@ -366,14 +368,14 @@
     <div class="page" id="settingsPage">
       <h2>Settings & Security</h2>
       
-      <!-- NATIVE FIREBASE SECURITY INFO -->
+      <!-- NEW MASTER SECRET KEY SECTION -->
       <div class="card-panel" style="margin-top:1.5rem; border-color:var(--red);">
-          <h3 style="margin-bottom:1rem; color:var(--red);">🛡️ Admin Security Config</h3>
-          <p style="font-size:0.8rem; color:var(--muted); margin-bottom:1rem;">Your Firebase Account automatically secures this panel. Sensitive actions (like Price Updates or Key Generation) will require your Firebase Admin Password to confirm identity.</p>
+          <h3 style="margin-bottom:1rem; color:var(--red);">🔑 Master Secret Key</h3>
+          <p style="font-size:0.8rem; color:var(--muted); margin-bottom:1rem;">Set a secure Secret Key. You will need this key to authorize Price Updates, generate Premium Pins, and verify new devices.</p>
           
-          <div style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
-              <span style="color:var(--muted); font-size: 0.8rem;">Current Logged-in Admin:</span><br>
-              <strong id="displayAdminEmail" style="color: #fff; font-size: 1.1rem;">Loading...</strong>
+          <div style="display:flex; gap:10px; max-width: 400px;">
+              <input class="inp" type="text" id="setAdminSecret" placeholder="Enter new Secret Key" style="margin-bottom:0;">
+              <button class="btn btn-red" id="saveAdminSecretBtn">💾 Save Key</button>
           </div>
       </div>
 
@@ -537,7 +539,7 @@
                 document.getElementById('adminDash').style.display = 'flex';
                 initAdmin();
             } else {
-                // Device changed -> Need Firebase Password Re-Auth
+                // Device changed -> Need Secret Key
                 document.getElementById('loginFormBox').style.display = 'none';
                 document.getElementById('deviceAuthBox').style.display = 'block';
             }
@@ -550,23 +552,27 @@
 
   document.getElementById('logoutBtn').addEventListener('click', () => { signOut(auth).then(() => location.reload()); });
 
-  // NEW DEVICE VERIFICATION (Via Firebase Password)
-  document.getElementById('verifyDevicePassBtn').addEventListener('click', () => {
-      const enteredPass = document.getElementById('loginDevicePassInput').value;
-      if(!enteredPass) return alert("Enter Password!");
+  // NEW DEVICE VERIFICATION (Via Secret Key)
+  document.getElementById('verifyDeviceSecretBtn').addEventListener('click', () => {
+      const enteredKey = document.getElementById('loginSecretInput').value.trim();
+      if(!enteredKey) return alert("Enter Secret Key!");
       
-      document.getElementById('verifyDevicePassBtn').innerText = "Authorizing...";
+      document.getElementById('verifyDeviceSecretBtn').innerText = "Authorizing...";
       
-      signInWithEmailAndPassword(auth, auth.currentUser.email, enteredPass).then(() => {
-          update(ref(db, 'settings/admin_sec'), { device: getAdminDeviceId() }).then(() => {
-              isAdminVerified = true;
-              document.getElementById('loginScreen').style.display = 'none';
-              document.getElementById('adminDash').style.display = 'flex';
-              initAdmin();
-          });
-      }).catch(() => {
-          alert("❌ Incorrect Password!"); 
-          document.getElementById('verifyDevicePassBtn').innerText = "✅ Authorize Device";
+      get(ref(db, 'settings/admin_sec/secretKey')).then(snap => {
+          const realKey = snap.val();
+          
+          if (!realKey || enteredKey === realKey) {
+              update(ref(db, 'settings/admin_sec'), { device: getAdminDeviceId(), secretKey: realKey || enteredKey }).then(() => {
+                  isAdminVerified = true;
+                  document.getElementById('loginScreen').style.display = 'none';
+                  document.getElementById('adminDash').style.display = 'flex';
+                  initAdmin();
+              });
+          } else {
+              alert("❌ Invalid Secret Key!"); 
+              document.getElementById('verifyDeviceSecretBtn').innerText = "✅ Verify & Authorize";
+          }
       });
   });
 
@@ -576,9 +582,6 @@
   function initAdmin() {
       if(adminInitDone) return;
       adminInitDone = true;
-      
-      // Update Logged in Email text
-      document.getElementById('displayAdminEmail').innerText = auth.currentUser.email;
 
       document.querySelectorAll('.slink[data-page]').forEach(link => {
         link.addEventListener('click', function() {
@@ -588,6 +591,18 @@
           document.getElementById(this.dataset.page).classList.add('active');
           if (this.dataset.page === 'photosPage') loadSecretPhotos();
         });
+      });
+
+      // --- SAVE MASTER SECRET KEY ---
+      onValue(ref(db, 'settings/admin_sec'), snap => {
+          const sec = snap.val() || {};
+          if(sec.secretKey) document.getElementById('setAdminSecret').value = sec.secretKey;
+      }, {onlyOnce: true});
+      
+      document.getElementById('saveAdminSecretBtn').addEventListener('click', () => {
+          const sk = document.getElementById('setAdminSecret').value.trim();
+          if(!sk) return alert("Please enter a valid Secret Key");
+          update(ref(db, 'settings/admin_sec'), { secretKey: sk }).then(() => alert("Master Secret Key Saved!"));
       });
       
       // --- PRICING LOGIC ---
@@ -601,10 +616,13 @@
       });
 
       document.getElementById('verifyPricingBtn').addEventListener('click', () => {
-          const enteredPass = document.getElementById('pricingPassInput').value;
-          if(!enteredPass) return alert("Please enter your Firebase Password to confirm.");
+          const enteredKey = document.getElementById('pricingSecretInput').value.trim();
+          if(!enteredKey) return alert("Please Enter Secret Key");
           
-          signInWithEmailAndPassword(auth, auth.currentUser.email, enteredPass).then(() => {
+          get(ref(db, 'settings/admin_sec/secretKey')).then(snap => {
+              const realKey = snap.val();
+              if(realKey && enteredKey !== realKey) return alert("❌ Incorrect Secret Key!");
+              
               const newPricing = {
                   monthly: parseFloat(document.getElementById('priceMonthly').value) || 0,
                   weekly: parseFloat(document.getElementById('priceWeekly').value) || 0,
@@ -614,9 +632,9 @@
               };
               set(ref(db, 'settings/pricing'), newPricing).then(() => {
                   alert("🔒 Prices Updated Securely.");
-                  document.getElementById('pricingPassInput').value = '';
+                  document.getElementById('pricingSecretInput').value = '';
               });
-          }).catch((e) => alert("❌ Incorrect Admin Password!"));
+          });
       });
 
       // --- ADVANCED KEY GENERATOR LOGIC ---
@@ -653,10 +671,12 @@
           let userCount = document.getElementById('allowAllUsersCb').checked ? 1 : document.querySelectorAll('.user-target-cb:checked').length;
           if(userCount === 0) return alert("Select at least one User or tick 'Allow ALL Users'.");
 
-          const enteredPass = document.getElementById('keygenPassInput').value;
-          if(!enteredPass) return alert("Please enter your Firebase Password to confirm.");
+          const enteredKey = document.getElementById('keygenSecretInput').value.trim();
+          if(!enteredKey) return alert("Please Enter Secret Key");
           
-          signInWithEmailAndPassword(auth, auth.currentUser.email, enteredPass).then(() => {
+          get(ref(db, 'settings/admin_sec/secretKey')).then(snap => {
+              const realKey = snap.val();
+              if(realKey && enteredKey !== realKey) return alert("❌ Incorrect Secret Key!");
               
               const type = document.getElementById('pinType').value;
               const targetVideo = document.getElementById('pinVideoSelect').value;
@@ -700,10 +720,10 @@
 
               update(ref(db, 'premium_pins'), updates).then(() => {
                   alert(`✅ Keys Generated Successfully!`);
-                  document.getElementById('keygenPassInput').value = '';
+                  document.getElementById('keygenSecretInput').value = '';
               });
 
-          }).catch((e) => alert("❌ Incorrect Admin Password!"));
+          });
       });
 
       // Display PINs
