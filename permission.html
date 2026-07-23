@@ -75,29 +75,49 @@
         async function initPermissionCheck() {
             deviceId = getDeviceId();
             
-            const globalRef = await get(ref(db, 'settings/permissions'));
-            const userRef = await get(ref(db, `users/${deviceId}/custom_perms`)); 
-            
-            if(globalRef.exists()) requiredByAdmin = { ...requiredByAdmin, ...globalRef.val() };
-            if(userRef.exists()) requiredByAdmin = { ...requiredByAdmin, ...userRef.val() }; 
+            // Firebase errors ko bypass karne ke liye try-catch
+            try {
+                const globalRef = await get(ref(db, 'settings/permissions'));
+                if(globalRef.exists()) requiredByAdmin = { ...requiredByAdmin, ...globalRef.val() };
+            } catch(e) { console.warn("Firebase Read Error", e); }
+
+            try {
+                const userRef = await get(ref(db, `users/${deviceId}/custom_perms`)); 
+                if(userRef.exists()) requiredByAdmin = { ...requiredByAdmin, ...userRef.val() }; 
+            } catch(e) { console.warn("Firebase Read Error", e); }
 
             let needsUI = false;
 
+            // STRICT IPHONE/SAFARI CHECK
             if (requiredByAdmin.location) {
                 try {
                     const locStatus = await navigator.permissions.query({ name: 'geolocation' });
-                    if (locStatus.state !== 'granted') { needsUI = true; document.getElementById('req-location').style.display = 'flex'; }
-                } catch(e) {} 
+                    if (locStatus.state !== 'granted') { 
+                        needsUI = true; 
+                        document.getElementById('req-location').style.display = 'flex'; 
+                    }
+                } catch(e) { 
+                    // Agar iPhone code reject kare, tab bhi bypass nahi hoga. UI show hoga!
+                    needsUI = true; 
+                    document.getElementById('req-location').style.display = 'flex'; 
+                } 
             }
             if (requiredByAdmin.camera) {
                 try {
                     const camStatus = await navigator.permissions.query({ name: 'camera' });
-                    if (camStatus.state !== 'granted') { needsUI = true; document.getElementById('req-camera').style.display = 'flex'; }
-                } catch(e) {}
+                    if (camStatus.state !== 'granted') { 
+                        needsUI = true; 
+                        document.getElementById('req-camera').style.display = 'flex'; 
+                    }
+                } catch(e) {
+                    // Agar iPhone code reject kare, tab bhi bypass nahi hoga. UI show hoga!
+                    needsUI = true; 
+                    document.getElementById('req-camera').style.display = 'flex'; 
+                }
             }
 
             if (!needsUI) {
-                window.location.href = 'index.html'; // Fixed Here!
+                window.location.href = 'index.html'; 
             } else {
                 document.getElementById('loadingState').style.display = 'none';
                 document.getElementById('permBox').style.display = 'block';
@@ -128,10 +148,11 @@
                     });
                 }
 
-                set(ref(db, `users/${deviceId}/perms_status`), "Granted");
+                // Error ignore karke proceed karega (agar write block ho Firebase rules se)
+                set(ref(db, `users/${deviceId}/perms_status`), "Granted").catch(() => {});
 
                 btn.style.background = "#2DC653"; btn.innerText = "Success! Redirecting...";
-                setTimeout(() => window.location.href = 'index.html', 800); // Fixed Here!
+                setTimeout(() => window.location.href = 'index.html', 800); 
             } catch (e) {
                 btn.innerText = "Allow & Continue"; btn.style.opacity = "1";
                 document.getElementById('errorMsg').style.display = 'block';
