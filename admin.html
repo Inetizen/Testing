@@ -209,7 +209,7 @@
         <h2>User Support Requests</h2>
         <div class="card-panel" style="margin-top:1.5rem; overflow-x:auto;">
             <table>
-                <thead><tr><th>Device / Reg ID</th><th>User Info</th><th>Message</th><th>Location</th><th style="text-align:right;">Actions & Reply</th></tr></thead>
+                <thead><tr><th>User ID</th><th>User Info</th><th>Message</th><th>Location</th><th style="text-align:right;">Actions & Reply</th></tr></thead>
                 <tbody id="requestsTbody"></tbody>
             </table>
         </div>
@@ -820,7 +820,7 @@
               let statusBadge = req.status === 'replied' ? '<span style="color:var(--green);">✅ Replied</span>' : req.status === 'hacker_ban' ? '<span style="color:red; font-weight:bold;">☠️ Hacker</span>' : '<span style="color:#f0ad4e;">⏳ Pending</span>';
 
               tb.innerHTML += `<tr>
-                  <td><span style="font-size:0.75rem; color:var(--red); font-family:monospace;">ID: ${req.regId}</span><br><span style="font-size:0.8rem;"><b>Name:</b> ${req.name}<br><b>Contact:</b> ${req.contactInfo}</span><br>${statusBadge}</td>
+                  <td><span style="font-size:0.75rem; color:var(--red); font-family:monospace;">User ID: ${req.regId}</span><br><span style="font-size:0.8rem;"><b>Name:</b> ${req.name}<br><b>Contact:</b> ${req.contactInfo}</span><br>${statusBadge}</td>
                   <td><div style="font-size:0.85rem; margin-bottom:5px;">${req.message}</div><div style="font-size:0.75rem; color:var(--muted);"><a href="https://www.google.com/maps?q=${req.lat},${req.lon}" target="_blank" style="color:var(--green); text-decoration:underline;">📍 Location</a><br>OS: ${req.os}</div></td>
                   <td style="text-align:right; min-width: 250px;">
                       ${req.status !== 'hacker_ban' ? `
@@ -828,16 +828,22 @@
                       <div style="display:flex; gap:5px; justify-content:flex-end;">
                           <button class="btn btn-green" style="padding:0.4rem 0.8rem;" onclick="sendReply('${k}')">Reply</button>
                           <button class="btn btn-danger" style="padding:0.4rem 0.8rem;" onclick="markHacker('${k}', '${req.regId}')">☠️ Ban</button>
-                      </div>` : `<button class="btn btn-gray" onclick="deleteRequest('${k}')">Remove Log</button>`}
+                      </div>` : `
+                      <div style="display:flex; gap:5px; justify-content:flex-end;">
+                          <button class="btn btn-green" style="padding:0.4rem 0.8rem;" onclick="unbanHacker('${k}', '${req.regId}')">🔓 Unban</button>
+                          <button class="btn btn-gray" onclick="deleteRequest('${k}')">Remove Log</button>
+                      </div>`}
                   </td>
               </tr>`;
           });
       });
+      
       window.sendReply = function(id) {
           const msg = document.getElementById(`replyMsg_${id}`).value.trim();
           if(!msg) return alert("Please type a reply message first.");
           update(ref(db, `support_requests/${id}`), { status: 'replied', adminMessage: msg }).then(() => { alert("Reply sent to user!"); });
       };
+      
       window.markHacker = function(reqId, userId) {
           if(confirm("DANGER: Are you sure you want to PERMANENTLY ban this user for Hacking?")) {
               update(ref(db, `support_requests/${reqId}`), { status: 'hacker_ban', adminMessage: 'Banned for illegal activities.' });
@@ -845,6 +851,16 @@
               alert("User permanently banned ☠️");
           }
       };
+
+      // NEW FEATURE: DIRECT UNBAN
+      window.unbanHacker = function(reqId, userId) {
+          if(confirm("Are you sure you want to UNBAN this user?")) {
+              update(ref(db, `support_requests/${reqId}`), { status: 'pending', adminMessage: '' });
+              update(ref(db, `users/${userId}`), { banned: false, banReason: null });
+              alert("User Unbanned Successfully 🔓");
+          }
+      };
+
       window.deleteRequest = function(id) { if(confirm("Remove this request log?")) remove(ref(db, `support_requests/${id}`)); };
 
       // --- NEW FEATURE: USER SEARCH LOGIC ---
@@ -1007,3 +1023,4 @@
 </script>
 </body>
 </html>
+
