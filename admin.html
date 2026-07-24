@@ -309,7 +309,10 @@
     <div class="page" id="usersPage">
       <h2>Advanced Audience Tracking</h2>
       <div class="card-panel" style="margin-top:1.5rem; overflow-x:auto;">
-        <table>
+        <!-- NEW FEATURE: USER ID SEARCH -->
+        <input type="text" id="trackSearch" class="inp" placeholder="🔍 Search User ID or Device OS..." style="margin-bottom: 1rem; border-color: var(--muted);">
+        
+        <table id="usersTableObj">
             <thead><tr><th>User ID</th><th>Device OS</th><th>First Visit</th><th>Status</th><th style="text-align:right;">Actions</th></tr></thead>
             <tbody id="userTableBody"></tbody>
         </table>
@@ -844,6 +847,23 @@
       };
       window.deleteRequest = function(id) { if(confirm("Remove this request log?")) remove(ref(db, `support_requests/${id}`)); };
 
+      // --- NEW FEATURE: USER SEARCH LOGIC ---
+      document.getElementById('trackSearch').addEventListener('input', function() {
+          const filter = this.value.toLowerCase();
+          const rows = document.querySelectorAll('#userTableBody tr');
+          rows.forEach(row => {
+              const text = row.innerText.toLowerCase();
+              row.style.display = text.includes(filter) ? '' : 'none';
+          });
+      });
+
+      // --- NEW FEATURE: DELETE USER RECORD LOGIC ---
+      window.deleteUserRecord = function(id) {
+          if(confirm("DANGER: Are you sure you want to permanently delete this user from the database? This action cannot be undone.")) {
+              remove(ref(db, `users/${id}`));
+          }
+      };
+
       // --- USERS TRACKING & CHECKBOX LOGIC ---
       onValue(ref(db, 'users'), snap => {
           allUsersRaw = snap.val() || {};
@@ -854,12 +874,28 @@
 
           Object.keys(allUsersRaw).reverse().forEach(k => {
               const u = allUsersRaw[k];
-              const isBanned = u.banned; const isHacker = u.banReason === 'hack'; const isLive = u.status === 'Live';
-              let statBadge = isHacker ? '<span class="badge-banned" style="background:#000; color:#ff4d4d; border:1px solid #ff4d4d;">☠️ HACKER</span>' : isBanned ? '<span class="badge-banned">🚫 Banned</span>' : isLive ? '<span class="badge-active" style="background:#2DC653;color:#fff;">🟢 Live</span>' : '<span class="badge-banned" style="background:var(--surf3);color:var(--muted);">🔴 Offline</span>';
+              const isBanned = u.banned; 
+              const isHacker = u.banReason === 'hack'; 
+              const isLive = u.status === 'Live';
+              
+              // NEW FEATURE: SHOW LIVE/OFFLINE AND BAN STATUS TOGETHER
+              let liveBadge = isLive ? '<span class="badge-active" style="background:#2DC653;color:#fff; margin-right:5px; display:inline-block; margin-bottom:3px;">🟢 Live</span>' : '<span class="badge-banned" style="background:var(--surf3);color:var(--muted); margin-right:5px; display:inline-block; margin-bottom:3px;">🔴 Offline</span>';
+              let banBadge = isHacker ? '<span class="badge-banned" style="background:#000; color:#ff4d4d; border:1px solid #ff4d4d; display:inline-block;">☠️ HACKER</span>' : (isBanned ? '<span class="badge-banned" style="display:inline-block;">🚫 Banned</span>' : '');
+              let statBadge = liveBadge + banBadge;
+
               const shortOs = u.device?.os || 'Unknown';
               const devStr = u.device ? `${u.device.os} - ${u.device.browser}` : 'Unknown';
               
-              tb.innerHTML += `<tr><td style="font-family:monospace; font-size:0.8rem; color:var(--red);">${k}</td><td>${shortOs}</td><td>${u.firstVisit ? new Date(u.firstVisit).toLocaleString() : 'None'}</td><td>${statBadge}</td><td style="text-align:right;"><button class="btn btn-gray" onclick="viewUser('${k}')">Full Details</button></td></tr>`;
+              tb.innerHTML += `<tr>
+                  <td style="font-family:monospace; font-size:0.8rem; color:var(--red);">${k}</td>
+                  <td>${shortOs}</td>
+                  <td>${u.firstVisit ? new Date(u.firstVisit).toLocaleString() : 'None'}</td>
+                  <td>${statBadge}</td>
+                  <td style="text-align:right; min-width:140px;">
+                      <button class="btn btn-gray" style="padding:0.4rem 0.8rem;" onclick="viewUser('${k}')">Full Details</button>
+                      <button class="btn btn-danger" style="padding:0.4rem 0.6rem; margin-left:5px;" onclick="deleteUserRecord('${k}')" title="Delete User">🗑️</button>
+                  </td>
+              </tr>`;
 
               if(!isBanned) { 
                   checkList.innerHTML += `<label class="user-chk-lbl" data-search="${k.toLowerCase()} ${devStr.toLowerCase()}"><input type="checkbox" value="${k}" class="user-target-cb" disabled> <span style="font-family:monospace; color:var(--text);">${k}</span> <span style="color:var(--muted); font-size:0.75rem;">(${devStr})</span></label>`; 
